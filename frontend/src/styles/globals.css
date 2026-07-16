@@ -535,7 +535,7 @@
 
 /* ===== ICON RAIL (ported from Aio mockup/02-sidebar-icon-rail) ===== */
 .icon-rail-slot {
-  width: 88px;
+  width: 100px;
   flex: 0 0 auto;
   position: relative;
   background: transparent;
@@ -546,22 +546,23 @@
   top: 50%;
   left: 12px;
   transform: translateY(-50%);
-  width: 76px;
+  width: 84px;
   background: var(--sidebar);
   border: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
-  border-radius: var(--radius-lg);
+  border-radius: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 18px 0;
+  padding: 20px 0;
   overflow: hidden;
   transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
   z-index: 110;
 }
 
-.icon-rail:hover {
-  width: 232px;
+.icon-rail:hover,
+.icon-rail:focus-within {
+  width: 248px;
   border-color: color-mix(in oklch, var(--sidebar-border) 72%, transparent);
   box-shadow: 18px 0 32px rgba(0, 0, 0, 0.22);
 }
@@ -572,7 +573,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .icon-rail-item {
@@ -588,7 +589,7 @@
   font-size: 14px;
   font-weight: 600;
   width: 100%;
-  height: 42px;
+  height: 46px;
   border-radius: var(--radius-sm);
   text-align: left;
   flex-shrink: 0;
@@ -648,6 +649,56 @@
   opacity: 1;
   pointer-events: auto;
   transform: translateX(0);
+}
+
+.icon-rail-collapse-btn {
+  align-self: center;
+  margin-top: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
+  background: transparent;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.icon-rail-collapse-btn:hover {
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--sidebar-accent) 70%, transparent);
+}
+
+.icon-rail-slot--collapsed {
+  width: 32px;
+}
+
+.icon-rail-reopen {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
+  background: var(--sidebar);
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  z-index: 110;
+}
+
+.icon-rail-reopen:hover {
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--sidebar-accent) 70%, transparent);
 }
 
 .icon-rail-mobile-toggle {

@@ -31,7 +31,7 @@ export function IconRail({ variant, items, onItemClick }: IconRailProps) {
           aria-label={isCompact ? label : undefined}
         >
           <span className="icon-rail-item-highlight">
-            <Icon className={isCompact ? "w-6 h-6" : "w-5.5 h-5.5"} />
+            <Icon className={isCompact ? "w-7 h-7" : "w-5.5 h-5.5"} />
             <span className="icon-rail-label icon-rail-label-inner">{label}</span>
           </span>
         </button>

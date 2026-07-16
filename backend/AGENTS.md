@@ -98,6 +98,8 @@ make format             # Format code with ruff
 make migrate-rev MSG="..."  # Autogenerate a new alembic revision (see Schema Migrations section)
 ```
 
+Run a single test: `PYTHONPATH=. uv run pytest tests/test_memory_updater.py -v` (add `-k pattern` to filter by name).
+
 The `detect-blocking-io` target parses `app/`, `packages/harness/deerflow/`,
 and `scripts/` with AST. By default it reports only blocking IO candidates that
 are inside async code, reachable from async code in the same file, or reachable

@@ -1,8 +1,6 @@
 import {
-  Code2Icon,
   CopyIcon,
   DownloadIcon,
-  EyeIcon,
   LoaderIcon,
   PackageIcon,
   SquareArrowOutUpRightIcon,
@@ -27,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import { useArtifactContent } from "@/core/artifacts/hooks";
 import {
@@ -66,10 +63,14 @@ export function ArtifactFileDetail({
   className,
   filepath: filepathFromProps,
   threadId,
+  viewMode,
+  onAutoViewMode,
 }: {
   className?: string;
   filepath: string;
   threadId: string;
+  viewMode: "code" | "preview";
+  onAutoViewMode?: (mode: "code" | "preview") => void;
 }) {
   const { t } = useI18n();
   const { artifacts, setOpen, select } = useArtifacts();
@@ -170,13 +171,11 @@ export function ArtifactFileDetail({
     filepathFromProps,
   );
 
-  const [viewMode, setViewMode] = useState<"code" | "preview">(
-    artifactViewState.initialViewMode,
-  );
   const [isInstalling, setIsInstalling] = useState(false);
   useEffect(() => {
-    setViewMode(artifactViewState.initialViewMode);
-  }, [artifactViewState.initialViewMode]);
+    onAutoViewMode?.(artifactViewState.initialViewMode);
+  }, [artifactViewState.initialViewMode, onAutoViewMode]);
+  const effectiveViewMode = artifactViewState.canPreview ? viewMode : "code";
 
   const handleInstallSkill = useCallback(async () => {
     if (isInstalling) return;
@@ -223,29 +222,6 @@ export function ArtifactFileDetail({
               </Select>
             )}
           </ArtifactTitle>
-        </div>
-        <div className="flex min-w-0 grow items-center justify-center">
-          {artifactViewState.canPreview && (
-            <ToggleGroup
-              className="mx-auto"
-              type="single"
-              variant="outline"
-              size="sm"
-              value={viewMode}
-              onValueChange={(value) => {
-                if (value) {
-                  setViewMode(value as "code" | "preview");
-                }
-              }}
-            >
-              <ToggleGroupItem value="code">
-                <Code2Icon />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="preview">
-                <EyeIcon />
-              </ToggleGroupItem>
-            </ToggleGroup>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <ArtifactActions>
@@ -332,7 +308,7 @@ export function ArtifactFileDetail({
       </ArtifactHeader>
       <ArtifactContent className="p-0">
         {artifactViewState.canPreview &&
-          viewMode === "preview" &&
+          effectiveViewMode === "preview" &&
           (language === "markdown" || language === "html") && (
             <ArtifactFilePreview
               content={visibleContent}
@@ -341,7 +317,7 @@ export function ArtifactFileDetail({
               url={url}
             />
           )}
-        {isCodeFile && viewMode === "code" && (
+        {isCodeFile && effectiveViewMode === "code" && (
           <CodeEditor
             className="size-full resize-none rounded-none border-none"
             value={visibleContent ?? ""}

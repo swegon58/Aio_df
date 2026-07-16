@@ -1,12 +1,6 @@
 import type { Message } from "@langchain/langgraph-sdk";
-import {
-  BotIcon,
-  FilesIcon,
-  MonitorIcon,
-  TerminalIcon,
-  XIcon,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { BotIcon, Code2Icon, FilesIcon, MonitorIcon, XIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Button } from "@/components/ui/button";
@@ -22,19 +16,9 @@ import {
 } from "../artifacts";
 import { useThread } from "../messages/context";
 
-import { SandboxTerminal } from "./sandbox-terminal";
-
-export interface BashStep {
-  id: string;
-  command?: string;
-  result?: string;
-  running: boolean;
-}
-
-// ponytail: mirrors extractBashSteps below, filtered to the `preview` tool —
-// take the latest successful call's result (a URL string) as the live
-// dev-server preview. Plan/todos already render in message-group.tsx's
-// chain-of-thought, no need to duplicate them here.
+// ponytail: take the latest successful `preview` tool call's result (a URL
+// string) as the live dev-server preview. Plan/todos already render in
+// message-group.tsx's chain-of-thought, no need to duplicate them here.
 function extractLatestPreviewUrl(messages: Message[]): string | undefined {
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
@@ -48,29 +32,6 @@ function extractLatestPreviewUrl(messages: Message[]): string | undefined {
     }
   }
   return undefined;
-}
-
-// ponytail: reuses the same tool_calls/tool-result data that already drives
-// the chain-of-thought steps in message-group.tsx (`convertToSteps`), just
-// filtered to `bash` — no new stream plumbing needed, `thread.messages` is
-// already live/reactive via useStream.
-function extractBashSteps(messages: Message[]): BashStep[] {
-  const steps: BashStep[] = [];
-  for (const message of messages) {
-    if (message.type !== "ai") continue;
-    for (const toolCall of message.tool_calls ?? []) {
-      if (toolCall.name !== "bash" || !toolCall.id) continue;
-      const command = (toolCall.args as { command?: string } | undefined)
-        ?.command;
-      steps.push({
-        id: toolCall.id,
-        command,
-        result: findToolCallResult(toolCall.id, messages),
-        running: !findToolCallResult(toolCall.id, messages),
-      });
-    }
-  }
-  return steps;
 }
 
 export function RightStatusPanel({
@@ -91,25 +52,39 @@ export function RightStatusPanel({
     setOpen: setArtifactsOpen,
   } = useArtifacts();
 
-  const bashSteps = useMemo(
-    () => extractBashSteps(thread.messages),
-    [thread.messages],
-  );
   const previewUrl = useMemo(
     () => extractLatestPreviewUrl(thread.messages),
     [thread.messages],
   );
 
-  const [tab, setTab] = useState(selectedArtifact ? "files" : "terminal");
+  const [tab, setTab] = useState("code");
   useEffect(() => {
-    if (selectedArtifact) setTab("files");
+    if (selectedArtifact) setTab("code");
   }, [selectedArtifact]);
 
-  const filesTab = selectedArtifact ? (
+  // ponytail: Radix unmounts the inactive TabsContent, so switching back into
+  // "code" remounts ArtifactFileDetail and its auto-view-mode effect fires
+  // again — without this guard it immediately snaps back to "preview" and
+  // the Code tab becomes unreachable. Only auto-open preview once per
+  // artifact, not on every remount.
+  const autoPreviewedArtifactRef = useRef<string | null>(null);
+  const handleAutoViewMode = useCallback(
+    (mode: "code" | "preview") => {
+      if (mode !== "preview") return;
+      if (autoPreviewedArtifactRef.current === selectedArtifact) return;
+      autoPreviewedArtifactRef.current = selectedArtifact ?? null;
+      setTab("preview");
+    },
+    [selectedArtifact],
+  );
+
+  const codeTab = selectedArtifact ? (
     <ArtifactFileDetail
       className="size-full"
       filepath={selectedArtifact}
       threadId={threadId}
+      viewMode="code"
+      onAutoViewMode={handleAutoViewMode}
     />
   ) : (
     <div className="relative flex size-full justify-center">
@@ -147,8 +122,8 @@ export function RightStatusPanel({
     </div>
   );
 
-  // ponytail: mobile keeps the old artifacts-only surface (no Terminal/Preview
-  // chrome) — same slide transition it always had, just relocated here.
+  // ponytail: mobile keeps the old artifacts-only surface (no Preview chrome)
+  // — same slide transition it always had, just relocated here.
   if (isMobile) {
     return (
       <div
@@ -157,13 +132,36 @@ export function RightStatusPanel({
           artifactPanelOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        {filesTab}
+        {codeTab}
       </div>
     );
   }
 
+  const previewTab = previewUrl ? (
+    <iframe className="size-full" src={previewUrl} title="Live preview" />
+  ) : selectedArtifact ? (
+    <ArtifactFileDetail
+      className="size-full"
+      filepath={selectedArtifact}
+      threadId={threadId}
+      viewMode="preview"
+    />
+  ) : (
+    <ConversationEmptyState
+      className="text-muted-foreground size-full p-4 text-xs [&_h3]:text-xs [&_p]:text-xs"
+      icon={<MonitorIcon className="size-5" />}
+      title="No preview yet"
+      description="Live preview appears here once the agent starts a dev server in the sandbox."
+    />
+  );
+
   return (
-    <div className={cn("flex h-full flex-col gap-4 p-4", className)}>
+    // ponytail: `relative` isn't cosmetic — the fixed DotGrid canvas behind
+    // workspace content paints in the CSS z-index:0 stacking step, which sits
+    // ABOVE non-positioned static content. Without this, the dot canvas
+    // renders on top of Code/Preview at 60% opacity, looking like a
+    // transparent panel with a background showing through.
+    <div className={cn("relative flex h-full flex-col gap-4 p-4", className)}>
       <div className="glass-surface flex items-center gap-3 rounded-lg p-4">
         <div className="icon-badge-glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
           <BotIcon className="text-primary size-5" />
@@ -187,21 +185,15 @@ export function RightStatusPanel({
         Usage tracking coming soon
       </p>
 
-      {/* ponytail: terminal chrome now theme-aware (muted/card tokens) instead of
-          hardcoded dark — user flagged pitch-black chrome as wrong in light mode. */}
       <Tabs
         value={tab}
         onValueChange={setTab}
         className="min-h-0 flex-1 gap-2"
       >
         <TabsList variant="line" className="shrink-0">
-          <TabsTrigger value="files" className="gap-1.5 font-mono">
-            <FilesIcon className="size-4" />
-            Files
-          </TabsTrigger>
-          <TabsTrigger value="terminal" className="gap-1.5 font-mono">
-            <TerminalIcon className="size-4" />
-            Terminal
+          <TabsTrigger value="code" className="gap-1.5 font-mono">
+            <Code2Icon className="size-4" />
+            Code
           </TabsTrigger>
           <TabsTrigger value="preview" className="gap-1.5 font-mono">
             <MonitorIcon className="size-4" />
@@ -210,46 +202,17 @@ export function RightStatusPanel({
         </TabsList>
 
         <TabsContent
-          value="files"
+          value="code"
           className="border-border bg-card min-h-0 overflow-hidden rounded-lg border"
         >
-          {filesTab}
-        </TabsContent>
-
-        <TabsContent
-          value="terminal"
-          className="border-border bg-card min-h-0 overflow-hidden rounded-lg border"
-        >
-          {bashSteps.length === 0 ? (
-            <ConversationEmptyState
-              className="text-muted-foreground size-full p-3 [&_h3]:text-xs [&_p]:text-xs"
-              icon={<TerminalIcon className="size-5" />}
-              title="No output yet"
-              description="Terminal output appears here once the agent runs commands."
-            />
-          ) : (
-            <SandboxTerminal steps={bashSteps} />
-          )}
+          {codeTab}
         </TabsContent>
 
         <TabsContent
           value="preview"
           className="border-border bg-card min-h-0 overflow-hidden rounded-lg border"
         >
-          {previewUrl ? (
-            <iframe
-              className="size-full"
-              src={previewUrl}
-              title="Live preview"
-            />
-          ) : (
-            <ConversationEmptyState
-              className="text-muted-foreground size-full p-4 text-xs [&_h3]:text-xs [&_p]:text-xs"
-              icon={<MonitorIcon className="size-5" />}
-              title="No preview yet"
-              description="Live preview appears here once the agent starts a dev server in the sandbox."
-            />
-          )}
+          {previewTab}
         </TabsContent>
       </Tabs>
     </div>
