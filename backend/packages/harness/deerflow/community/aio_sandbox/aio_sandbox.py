@@ -26,24 +26,32 @@ class AioSandbox(Sandbox):
     from corrupting the container's single persistent session (see #1433).
     """
 
-    def __init__(self, id: str, base_url: str, home_dir: str | None = None):
+    def __init__(self, id: str, base_url: str, home_dir: str | None = None, preview_url: str | None = None):
         """Initialize the AIO sandbox.
 
         Args:
             id: Unique identifier for this sandbox instance.
             base_url: URL of the sandbox API (e.g., http://localhost:8080).
             home_dir: Home directory inside the sandbox. If None, will be fetched from the sandbox.
+            preview_url: URL reaching PREVIEW_CONTAINER_PORT inside the sandbox,
+                for live-previewing a dev server the agent starts. None if the
+                backend doesn't support a preview port.
         """
         super().__init__(id)
         self._base_url = base_url
         self._client = AioSandboxClient(base_url=base_url, timeout=600)
         self._home_dir = home_dir
+        self._preview_url = preview_url
         self._lock = threading.Lock()
         self._closed = False
 
     @property
     def base_url(self) -> str:
         return self._base_url
+
+    @property
+    def preview_url(self) -> str | None:
+        return self._preview_url
 
     def close(self) -> None:
         """Best-effort close of the host-side HTTP client owned by this sandbox.

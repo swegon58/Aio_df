@@ -1,10 +1,7 @@
-import { FilesIcon, XIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GroupImperativeHandle } from "react-resizable-panels";
 
-import { ConversationEmptyState } from "@/components/ai-elements/conversation";
-import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -14,19 +11,15 @@ import { env } from "@/env";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-import {
-  ArtifactFileDetail,
-  ArtifactFileList,
-  useArtifacts,
-} from "../artifacts";
+import { useArtifacts } from "../artifacts";
 import { useThread } from "../messages/context";
 
 import { RightStatusPanel } from "./right-status-panel";
 
-const CLOSE_MODE = { chat: 100, artifacts: 0, status: 0 };
-const OPEN_MODE = { chat: 60, artifacts: 40, status: 0 };
-const CLOSE_MODE_WITH_STATUS = { chat: 70, artifacts: 0, status: 30 };
-const OPEN_MODE_WITH_STATUS = { chat: 40, artifacts: 30, status: 30 };
+const CLOSE_MODE = { chat: 100, right: 0 };
+const OPEN_MODE = { chat: 60, right: 40 };
+const CLOSE_MODE_WITH_STATUS = { chat: 70, right: 30 };
+const OPEN_MODE_WITH_STATUS = { chat: 40, right: 60 };
 
 const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   children,
@@ -41,7 +34,6 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   const {
     artifacts,
     open: artifactsOpen,
-    setOpen: setArtifactsOpen,
     setArtifacts,
     select: selectArtifact,
     deselect,
@@ -129,79 +121,19 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
         id={`${resizableIdBase}-separator`}
         className={cn(
           "opacity-33 hover:opacity-100",
-          !artifactPanelOpen && "pointer-events-none opacity-0",
-        )}
-      />
-      <ResizablePanel
-        className={cn(
-          "transition-all duration-300 ease-in-out",
-          !artifactsOpen && "opacity-0",
-        )}
-        id="artifacts"
-      >
-        <div
-          className={cn(
-            "h-full p-4 transition-transform duration-300 ease-in-out",
-            artifactPanelOpen ? "translate-x-0" : "translate-x-full",
-          )}
-        >
-          {selectedArtifact ? (
-            <ArtifactFileDetail
-              className="size-full"
-              filepath={selectedArtifact}
-              threadId={threadId}
-            />
-          ) : (
-            <div className="relative flex size-full justify-center">
-              <div className="absolute top-1 right-1 z-30">
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setArtifactsOpen(false);
-                  }}
-                >
-                  <XIcon />
-                </Button>
-              </div>
-              {artifacts.length === 0 ? (
-                <ConversationEmptyState
-                  icon={<FilesIcon />}
-                  title="No artifact selected"
-                  description="Select an artifact to view its details"
-                />
-              ) : (
-                <div className="flex size-full max-w-(--container-width-sm) flex-col justify-center p-4 pt-8">
-                  <header className="shrink-0">
-                    <h2 className="text-lg font-medium">Artifacts</h2>
-                  </header>
-                  <main className="min-h-0 grow">
-                    <ArtifactFileList
-                      className="max-w-(--container-width-sm) p-4 pt-12"
-                      files={artifacts}
-                      threadId={threadId}
-                    />
-                  </main>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </ResizablePanel>
-      <ResizableHandle
-        id={`${resizableIdBase}-status-separator`}
-        className={cn(
-          "opacity-33 hover:opacity-100",
-          isMobile && "pointer-events-none opacity-0",
+          isMobile && !artifactPanelOpen && "pointer-events-none opacity-0",
         )}
       />
       <ResizablePanel
         className="border-border/60 border-l"
         defaultSize={30}
         minSize={20}
-        id="status"
+        id="right"
       >
-        {!isMobile && <RightStatusPanel />}
+        <RightStatusPanel
+          threadId={threadId}
+          artifactPanelOpen={artifactPanelOpen}
+        />
       </ResizablePanel>
     </ResizablePanelGroup>
   );

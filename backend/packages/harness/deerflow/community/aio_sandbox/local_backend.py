@@ -20,6 +20,11 @@ from .sandbox_info import SandboxInfo
 
 logger = logging.getLogger(__name__)
 
+# Fixed container-side port that dev servers started by the agent should bind
+# to, so a live-preview URL can be published alongside the sandbox API port.
+# The agent is instructed (see the preview tool description) to use this port.
+PREVIEW_CONTAINER_PORT = 3000
+
 
 def _parse_docker_timestamp(raw: str) -> float:
     """Parse Docker's ISO 8601 timestamp into a Unix epoch float.
@@ -291,21 +296,26 @@ class LocalContainerBackend(SandboxBackend):
         # 0.0.0.0 bind, but Docker's port-release can be slightly asynchronous,
         # so a reactive fallback here ensures we always make progress.
         _next_start = self._base_port
+        _preview_next_start = self._base_port + 10000
         container_id: str | None = None
         port: int = 0
+        preview_port: int = 0
         for _attempt in range(10):
             port = get_free_port(start_port=_next_start)
+            preview_port = get_free_port(start_port=_preview_next_start)
             try:
-                container_id = self._start_container(container_name, port, extra_mounts)
+                container_id = self._start_container(container_name, port, extra_mounts, preview_port=preview_port)
                 break
             except RuntimeError as exc:
                 release_port(port)
+                release_port(preview_port)
                 err = str(exc)
                 err_lower = err.lower()
                 # Port already bound: skip this port and retry with the next one.
                 if "port is already allocated" in err or "address already in use" in err_lower:
                     logger.warning(f"Port {port} rejected by Docker (already allocated), retrying with next port")
                     _next_start = port + 1
+                    _preview_next_start = preview_port + 1
                     continue
                 # Container-name conflict: another process may have already started
                 # the deterministic sandbox container for this sandbox_id. Try to
@@ -325,6 +335,7 @@ class LocalContainerBackend(SandboxBackend):
         return SandboxInfo(
             sandbox_id=sandbox_id,
             sandbox_url=f"http://{sandbox_host}:{port}",
+            preview_url=f"http://{sandbox_host}:{preview_port}",
             container_name=container_name,
             container_id=container_id,
         )
@@ -337,13 +348,17 @@ class LocalContainerBackend(SandboxBackend):
         stop_target = info.container_id or info.container_name
         if stop_target:
             self._stop_container(stop_target)
-        # Extract port from sandbox_url for release
+        # Extract ports from sandbox_url/preview_url for release
         try:
             from urllib.parse import urlparse
 
             port = urlparse(info.sandbox_url).port
             if port:
                 release_port(port)
+            if info.preview_url:
+                preview_port = urlparse(info.preview_url).port
+                if preview_port:
+                    release_port(preview_port)
         except Exception:
             pass
 
@@ -389,9 +404,13 @@ class LocalContainerBackend(SandboxBackend):
         if not wait_for_sandbox_ready(sandbox_url, timeout=5):
             return None
 
+        preview_port = self._get_container_port(container_name, container_port=PREVIEW_CONTAINER_PORT)
+        preview_url = f"http://{sandbox_host}:{preview_port}" if preview_port else None
+
         return SandboxInfo(
             sandbox_id=sandbox_id,
             sandbox_url=sandbox_url,
+            preview_url=preview_url,
             container_name=container_name,
         )
 
@@ -525,6 +544,7 @@ class LocalContainerBackend(SandboxBackend):
         container_name: str,
         port: int,
         extra_mounts: list[tuple[str, str, bool]] | None = None,
+        preview_port: int | None = None,
     ) -> str:
         """Start a new container.
 
@@ -532,6 +552,10 @@ class LocalContainerBackend(SandboxBackend):
             container_name: Name for the container.
             port: Host port to map to container port 8080.
             extra_mounts: Additional volume mounts.
+            preview_port: Host port to map to PREVIEW_CONTAINER_PORT, for a
+                live-preview URL to a dev server the agent starts. Optional so
+                callers that don't need preview (e.g. future non-preview
+                backends) aren't forced to allocate a second port.
 
         Returns:
             The container ID.
@@ -560,6 +584,13 @@ class LocalContainerBackend(SandboxBackend):
                 container_name,
             ]
         )
+
+        if preview_port is not None:
+            if self._runtime == "docker":
+                preview_mapping = f"{_resolve_docker_bind_host()}:{preview_port}:{PREVIEW_CONTAINER_PORT}"
+            else:
+                preview_mapping = f"{preview_port}:{PREVIEW_CONTAINER_PORT}"
+            cmd.extend(["-p", preview_mapping])
 
         # Environment variables
         for key, value in self._environment.items():
@@ -644,18 +675,19 @@ class LocalContainerBackend(SandboxBackend):
             return False
         raise RuntimeError(f"Failed to inspect container {container_name}: {result.stderr.strip()}")
 
-    def _get_container_port(self, container_name: str) -> int | None:
+    def _get_container_port(self, container_name: str, container_port: int = 8080) -> int | None:
         """Get the host port of a running container.
 
         Args:
             container_name: The container name to inspect.
+            container_port: The container-side port to look up.
 
         Returns:
-            The host port mapped to container port 8080, or None if not found.
+            The host port mapped to ``container_port``, or None if not found.
         """
         try:
             result = subprocess.run(
-                [self._runtime, "port", container_name, "8080"],
+                [self._runtime, "port", container_name, str(container_port)],
                 capture_output=True,
                 text=True,
                 timeout=5,

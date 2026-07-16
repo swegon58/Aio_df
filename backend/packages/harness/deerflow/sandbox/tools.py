@@ -1447,6 +1447,33 @@ async def _bash_tool_async(runtime: Runtime, description: str, command: str) -> 
 bash_tool.coroutine = _bash_tool_async
 
 
+@tool("preview", parse_docstring=True)
+def preview_tool(runtime: Runtime) -> str:
+    """Get the live-preview URL for a web app or dev server running in the sandbox.
+
+    Start your dev server inside the sandbox bound to host 0.0.0.0 on port 3000
+    (e.g. `npm run dev -- --host 0.0.0.0 --port 3000 > /mnt/user-data/workspace/server.log 2>&1 &`),
+    then call this tool to get the externally-reachable URL to share with the user.
+    """
+    try:
+        sandbox = ensure_sandbox_initialized(runtime)
+        preview_url = getattr(sandbox, "preview_url", None)
+        if not preview_url:
+            return "Error: no preview URL available for this sandbox (dev-server preview is not supported in this sandbox mode)."
+        return preview_url
+    except SandboxError as e:
+        return f"Error: {e}"
+    except Exception as e:
+        return f"Error: Unexpected error getting preview URL: {_sanitize_error(e, runtime)}"
+
+
+async def _preview_tool_async(runtime: Runtime) -> str:
+    return await _run_sync_tool_after_async_sandbox_init(preview_tool.func, runtime)
+
+
+preview_tool.coroutine = _preview_tool_async
+
+
 @tool("ls", parse_docstring=True)
 def ls_tool(runtime: Runtime, description: str, path: str) -> str:
     """List the contents of a directory up to 2 levels deep in tree format.

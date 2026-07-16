@@ -541,7 +541,7 @@ class AioSandboxProvider(SandboxProvider):
             if warm_item is None:
                 return None
             info, _ = warm_item
-            sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url)
+            sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url, preview_url=info.preview_url)
             self._sandboxes[sandbox_id] = sandbox
             self._sandbox_infos[sandbox_id] = info
             self._last_activity[sandbox_id] = time.time()
@@ -562,7 +562,7 @@ class AioSandboxProvider(SandboxProvider):
 
     def _register_discovered_sandbox(self, thread_id: str, info: SandboxInfo, *, user_id: str) -> str:
         """Track a sandbox discovered through the backend."""
-        sandbox = AioSandbox(id=info.sandbox_id, base_url=info.sandbox_url)
+        sandbox = AioSandbox(id=info.sandbox_id, base_url=info.sandbox_url, preview_url=info.preview_url)
         key = self._thread_key(thread_id, user_id)
         with self._lock:
             self._sandboxes[info.sandbox_id] = sandbox
@@ -575,7 +575,7 @@ class AioSandboxProvider(SandboxProvider):
 
     def _register_created_sandbox(self, thread_id: str | None, sandbox_id: str, info: SandboxInfo, *, user_id: str | None = None) -> str:
         """Track a newly-created sandbox in the active maps."""
-        sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url)
+        sandbox = AioSandbox(id=sandbox_id, base_url=info.sandbox_url, preview_url=info.preview_url)
         with self._lock:
             self._sandboxes[sandbox_id] = sandbox
             self._sandbox_infos[sandbox_id] = info

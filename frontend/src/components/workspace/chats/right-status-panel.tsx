@@ -1,45 +1,53 @@
 import type { Message } from "@langchain/langgraph-sdk";
-import { BotIcon, ListChecksIcon, MonitorIcon, TerminalIcon } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import {
+  BotIcon,
+  FilesIcon,
+  MonitorIcon,
+  TerminalIcon,
+  XIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { findToolCallResult } from "@/core/messages/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
+import {
+  ArtifactFileDetail,
+  ArtifactFileList,
+  useArtifacts,
+} from "../artifacts";
 import { useThread } from "../messages/context";
 
-interface BashStep {
+import { SandboxTerminal } from "./sandbox-terminal";
+
+export interface BashStep {
   id: string;
   command?: string;
   result?: string;
   running: boolean;
 }
 
-interface TodoItem {
-  content: string;
-  status: "pending" | "in_progress" | "completed";
-}
-
-// ponytail: reuses the write_todos tool_calls that already flow through
-// thread.messages (message-group.tsx renders them as a bare "Write Todos"
-// chain-of-thought step today) — take the most recent call's full list as
-// current plan state. No new backend event, no research.stage equivalent
-// needed (Aio's ResearchPlanCard source event doesn't exist here).
-function extractLatestTodos(messages: Message[]): TodoItem[] {
+// ponytail: mirrors extractBashSteps below, filtered to the `preview` tool —
+// take the latest successful call's result (a URL string) as the live
+// dev-server preview. Plan/todos already render in message-group.tsx's
+// chain-of-thought, no need to duplicate them here.
+function extractLatestPreviewUrl(messages: Message[]): string | undefined {
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
     if (message?.type !== "ai") continue;
     const toolCalls = message.tool_calls ?? [];
     for (let j = toolCalls.length - 1; j >= 0; j--) {
       const toolCall = toolCalls[j];
-      if (toolCall?.name !== "write_todos") continue;
-      const todos = (toolCall.args as { todos?: TodoItem[] } | undefined)
-        ?.todos;
-      if (todos?.length) return todos;
+      if (toolCall?.name !== "preview" || !toolCall.id) continue;
+      const result = findToolCallResult(toolCall.id, messages);
+      if (result && !result.startsWith("Error")) return result;
     }
   }
-  return [];
+  return undefined;
 }
 
 // ponytail: reuses the same tool_calls/tool-result data that already drives
@@ -65,23 +73,94 @@ function extractBashSteps(messages: Message[]): BashStep[] {
   return steps;
 }
 
-export function RightStatusPanel({ className }: { className?: string }) {
+export function RightStatusPanel({
+  className,
+  threadId,
+  artifactPanelOpen,
+}: {
+  className?: string;
+  threadId: string;
+  artifactPanelOpen: boolean;
+}) {
   const { thread } = useThread();
   const isRunning = thread.isLoading;
+  const isMobile = useIsMobile();
+  const {
+    artifacts,
+    selectedArtifact,
+    setOpen: setArtifactsOpen,
+  } = useArtifacts();
+
   const bashSteps = useMemo(
     () => extractBashSteps(thread.messages),
     [thread.messages],
   );
-  const todos = useMemo(
-    () => extractLatestTodos(thread.messages),
+  const previewUrl = useMemo(
+    () => extractLatestPreviewUrl(thread.messages),
     [thread.messages],
   );
-  const terminalScrollRef = useRef<HTMLDivElement>(null);
 
+  const [tab, setTab] = useState(selectedArtifact ? "files" : "terminal");
   useEffect(() => {
-    const el = terminalScrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [bashSteps]);
+    if (selectedArtifact) setTab("files");
+  }, [selectedArtifact]);
+
+  const filesTab = selectedArtifact ? (
+    <ArtifactFileDetail
+      className="size-full"
+      filepath={selectedArtifact}
+      threadId={threadId}
+    />
+  ) : (
+    <div className="relative flex size-full justify-center">
+      <div className="absolute top-1 right-1 z-30">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={() => {
+            setArtifactsOpen(false);
+          }}
+        >
+          <XIcon />
+        </Button>
+      </div>
+      {artifacts.length === 0 ? (
+        <ConversationEmptyState
+          icon={<FilesIcon />}
+          title="No artifact selected"
+          description="Select an artifact to view its details"
+        />
+      ) : (
+        <div className="flex size-full max-w-(--container-width-sm) flex-col justify-center p-4 pt-8">
+          <header className="shrink-0">
+            <h2 className="text-lg font-medium">Artifacts</h2>
+          </header>
+          <main className="min-h-0 grow">
+            <ArtifactFileList
+              className="max-w-(--container-width-sm) p-4 pt-12"
+              files={artifacts}
+              threadId={threadId}
+            />
+          </main>
+        </div>
+      )}
+    </div>
+  );
+
+  // ponytail: mobile keeps the old artifacts-only surface (no Terminal/Preview
+  // chrome) — same slide transition it always had, just relocated here.
+  if (isMobile) {
+    return (
+      <div
+        className={cn(
+          "h-full p-4 transition-transform duration-300 ease-in-out",
+          artifactPanelOpen ? "translate-x-0" : "translate-x-full",
+        )}
+      >
+        {filesTab}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex h-full flex-col gap-4 p-4", className)}>
@@ -110,8 +189,16 @@ export function RightStatusPanel({ className }: { className?: string }) {
 
       {/* ponytail: terminal chrome now theme-aware (muted/card tokens) instead of
           hardcoded dark — user flagged pitch-black chrome as wrong in light mode. */}
-      <Tabs defaultValue="terminal" className="min-h-0 flex-1 gap-2">
+      <Tabs
+        value={tab}
+        onValueChange={setTab}
+        className="min-h-0 flex-1 gap-2"
+      >
         <TabsList variant="line" className="shrink-0">
+          <TabsTrigger value="files" className="gap-1.5 font-mono">
+            <FilesIcon className="size-4" />
+            Files
+          </TabsTrigger>
           <TabsTrigger value="terminal" className="gap-1.5 font-mono">
             <TerminalIcon className="size-4" />
             Terminal
@@ -123,76 +210,45 @@ export function RightStatusPanel({ className }: { className?: string }) {
         </TabsList>
 
         <TabsContent
+          value="files"
+          className="border-border bg-card min-h-0 overflow-hidden rounded-lg border"
+        >
+          {filesTab}
+        </TabsContent>
+
+        <TabsContent
           value="terminal"
           className="border-border bg-card min-h-0 overflow-hidden rounded-lg border"
         >
-          <div
-            ref={terminalScrollRef}
-            className="size-full overflow-y-auto p-3 font-mono text-xs"
-          >
-            {bashSteps.length === 0 ? (
-              <ConversationEmptyState
-                className="text-muted-foreground size-full [&_h3]:text-xs [&_p]:text-xs"
-                icon={<TerminalIcon className="size-5" />}
-                title="No output yet"
-                description="Terminal output appears here once the agent runs commands."
-              />
-            ) : (
-              <div className="flex flex-col gap-3">
-                {bashSteps.map((step) => (
-                  <div key={step.id}>
-                    <div className="text-primary">$ {step.command}</div>
-                    {step.result && (
-                      <pre className="text-muted-foreground mt-1 whitespace-pre-wrap">
-                        {step.result}
-                      </pre>
-                    )}
-                    {step.running && (
-                      <span className="text-muted-foreground animate-pulse">
-                        running…
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {bashSteps.length === 0 ? (
+            <ConversationEmptyState
+              className="text-muted-foreground size-full p-3 [&_h3]:text-xs [&_p]:text-xs"
+              icon={<TerminalIcon className="size-5" />}
+              title="No output yet"
+              description="Terminal output appears here once the agent runs commands."
+            />
+          ) : (
+            <SandboxTerminal steps={bashSteps} />
+          )}
         </TabsContent>
 
         <TabsContent
           value="preview"
           className="border-border bg-card min-h-0 overflow-hidden rounded-lg border"
         >
-          {todos.length === 0 ? (
+          {previewUrl ? (
+            <iframe
+              className="size-full"
+              src={previewUrl}
+              title="Live preview"
+            />
+          ) : (
             <ConversationEmptyState
               className="text-muted-foreground size-full p-4 text-xs [&_h3]:text-xs [&_p]:text-xs"
               icon={<MonitorIcon className="size-5" />}
-              title="No research output yet"
-              description="Research results will appear here once the agent starts a research task."
+              title="No preview yet"
+              description="Live preview appears here once the agent starts a dev server in the sandbox."
             />
-          ) : (
-            <div className="size-full overflow-y-auto p-3 text-xs">
-              <div className="mb-2 flex items-center gap-1.5 font-medium">
-                <ListChecksIcon className="size-4" />
-                Plan
-              </div>
-              <ol className="flex list-decimal list-outside flex-col gap-1.5 pl-6">
-                {todos.map((todo, i) => (
-                  <li
-                    key={i}
-                    className={cn(
-                      "marker:text-muted-foreground",
-                      todo.status === "completed" &&
-                        "text-muted-foreground line-through",
-                      todo.status === "in_progress" && "text-primary",
-                      todo.status === "pending" && "text-foreground",
-                    )}
-                  >
-                    {todo.content}
-                  </li>
-                ))}
-              </ol>
-            </div>
           )}
         </TabsContent>
       </Tabs>
