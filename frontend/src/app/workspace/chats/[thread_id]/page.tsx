@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArtifactTrigger } from "@/components/workspace/artifacts";
 import {
   ChatBox,
@@ -157,6 +156,10 @@ export default function ChatPage() {
     },
     [sendMessage, threadId],
   );
+  const submitAnswer = useCallback(
+    (text: string) => handleSubmit({ text, files: [] }),
+    [handleSubmit],
+  );
   const handleStop = useCallback(async () => {
     await thread.stop();
   }, [thread]);
@@ -172,7 +175,7 @@ export default function ChatPage() {
   const hasTodos = (thread.values.todos?.length ?? 0) > 0;
 
   return (
-    <ThreadContext.Provider value={{ thread, isMock }}>
+    <ThreadContext.Provider value={{ thread, isMock, submitAnswer }}>
       <ChatBox threadId={threadId}>
         <div className="relative flex size-full min-h-0 justify-between">
           <header
@@ -183,7 +186,6 @@ export default function ChatPage() {
                 : "bg-background/80 shadow-xs backdrop-blur",
             )}
           >
-            <SidebarTrigger className="md:hidden" />
             <div className="flex min-w-0 flex-1 items-center text-sm font-medium">
               <ThreadTitle threadId={threadId} thread={thread} />
             </div>
@@ -234,7 +236,7 @@ export default function ChatPage() {
                 className={cn(
                   "relative w-full",
                   isWelcomeMode &&
-                    "-translate-y-[calc(50vh-48px)] sm:-translate-y-[calc(50vh-96px)]",
+                    "-translate-y-[calc(50vh-610px)] sm:-translate-y-[calc(50vh-250px)]",
                   isWelcomeMode
                     ? "max-w-(--container-width-sm)"
                     : "max-w-(--container-width-md)",

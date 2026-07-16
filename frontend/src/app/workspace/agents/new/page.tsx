@@ -343,7 +343,7 @@ export default function NewAgentPage() {
   }
 
   return (
-    <ThreadContext.Provider value={{ thread }}>
+    <ThreadContext.Provider value={{ thread, submitAnswer: handleChatSubmit }}>
       <ArtifactsProvider>
         <div className="flex size-full flex-col">
           {header}

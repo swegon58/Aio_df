@@ -112,7 +112,6 @@ export function CommandPalette() {
             {[
               { keys: `${metaKey}K`, label: t.shortcuts.openCommandPalette },
               { keys: `${metaKey}${shiftKey}N`, label: t.sidebar.newChat },
-              { keys: `${metaKey}B`, label: t.shortcuts.toggleSidebar },
               { keys: `${metaKey},`, label: t.common.settings },
               {
                 keys: `${metaKey}/`,

@@ -5,6 +5,12 @@ import { useTheme } from "next-themes";
 import { useMemo, type ComponentType, type SVGProps } from "react";
 
 import {
+  ACCENT_HEX,
+  ACCENT_KEYS,
+  useAccent,
+  type AccentKey,
+} from "@/components/accent-provider";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,6 +33,7 @@ export function AppearanceSettingsPage() {
   const { t, locale, changeLocale } = useI18n();
   const { theme, setTheme, systemTheme } = useTheme();
   const currentTheme = (theme ?? "system") as "system" | "light" | "dark";
+  const { accent, setAccent } = useAccent();
 
   const themeOptions = useMemo(
     () => [
@@ -76,6 +83,36 @@ export function AppearanceSettingsPage() {
               mode={option.id as "system" | "light" | "dark"}
               systemTheme={systemTheme}
               onSelect={(value) => setTheme(value)}
+            />
+          ))}
+        </div>
+      </SettingsSection>
+
+      <Separator />
+
+      <SettingsSection
+        title={t.settings.appearance.accentTitle}
+        description={t.settings.appearance.accentDescription}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-label={t.settings.appearance.accentDefault}
+            title={t.settings.appearance.accentDefault}
+            onClick={() => setAccent(null)}
+            className={`accent-swatch bg-muted flex items-center justify-center text-[10px] font-semibold ${accent === null ? "accent-swatch--active" : ""}`}
+          >
+            {t.settings.appearance.accentDefault.slice(0, 1)}
+          </button>
+          {ACCENT_KEYS.map((key: AccentKey) => (
+            <button
+              key={key}
+              type="button"
+              aria-label={key}
+              title={key}
+              onClick={() => setAccent(key)}
+              style={{ background: ACCENT_HEX[key] }}
+              className={`accent-swatch ${accent === key ? "accent-swatch--active" : ""}`}
             />
           ))}
         </div>

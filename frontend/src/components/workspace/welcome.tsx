@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
@@ -44,7 +45,18 @@ export function Welcome({
         className,
       )}
     >
-      <div className="max-w-full text-2xl font-bold">
+      {searchParams.get("mode") !== "skill" && (
+        <Image
+          src="/mascot/coffee_break.png"
+          alt=""
+          width={112}
+          height={112}
+          className="object-contain"
+          style={{ width: 112, height: 112 }}
+          priority
+        />
+      )}
+      <div className="font-heading max-w-full text-2xl font-bold">
         {searchParams.get("mode") === "skill" ? (
           `✨ ${t.welcome.createYourOwnSkill} ✨`
         ) : (
@@ -56,15 +68,11 @@ export function Welcome({
           </div>
         )}
       </div>
-      {searchParams.get("mode") === "skill" ? (
+      {searchParams.get("mode") === "skill" && (
         <div className="text-muted-foreground max-w-full text-sm">
           <WelcomeDescription>
             {t.welcome.createYourOwnSkillDescription}
           </WelcomeDescription>
-        </div>
-      ) : (
-        <div className="text-muted-foreground max-w-full text-sm">
-          <WelcomeDescription>{t.welcome.description}</WelcomeDescription>
         </div>
       )}
     </div>

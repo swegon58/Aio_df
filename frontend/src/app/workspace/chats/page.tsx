@@ -13,7 +13,6 @@ import {
 import {
   WorkspaceBody,
   WorkspaceContainer,
-  WorkspaceHeader,
 } from "@/components/workspace/workspace-container";
 import { useI18n } from "@/core/i18n/hooks";
 import { useInfiniteThreads } from "@/core/threads/hooks";
@@ -73,8 +72,7 @@ export default function ChatsPage() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, isSearching]);
 
   return (
-    <WorkspaceContainer>
-      <WorkspaceHeader></WorkspaceHeader>
+    <WorkspaceContainer className="relative">
       <WorkspaceBody>
         <div className="flex size-full flex-col">
           <header className="flex shrink-0 items-center justify-center pt-8">

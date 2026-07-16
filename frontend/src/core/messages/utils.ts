@@ -14,7 +14,26 @@ interface AssistantMessageGroup extends GenericMessageGroup<"assistant"> {}
 
 interface AssistantPresentFilesGroup extends GenericMessageGroup<"assistant:present-files"> {}
 
-interface AssistantClarificationGroup extends GenericMessageGroup<"assistant:clarification"> {}
+export interface ClarificationQuestion {
+  question: string;
+  clarification_type:
+    | "missing_info"
+    | "ambiguous_requirement"
+    | "approach_choice"
+    | "risk_confirmation"
+    | "suggestion";
+  context?: string;
+  options?: string[];
+}
+
+export interface ClarificationArgs {
+  questions: ClarificationQuestion[];
+}
+
+interface AssistantClarificationGroup
+  extends GenericMessageGroup<"assistant:clarification"> {
+  args?: ClarificationArgs;
+}
 
 interface AssistantSubagentGroup extends GenericMessageGroup<"assistant:subagent"> {}
 
@@ -69,11 +88,14 @@ export function getMessageGroups(messages: Message[]): MessageGroup[] {
       if (isClarificationToolMessage(message)) {
         // Add to the preceding processing group to preserve tool-call association,
         // then also open a standalone clarification group for prominent display.
-        lastOpenGroup()?.messages.push(message);
+        const openGroup = lastOpenGroup();
+        const args = findClarificationArgs(message, openGroup?.messages ?? []);
+        openGroup?.messages.push(message);
         groups.push({
           id: message.id,
           type: "assistant:clarification",
           messages: [message],
+          args,
         });
       } else {
         const open = lastOpenGroup();
@@ -438,6 +460,65 @@ export function hasPresentFiles(message: Message) {
 
 export function isClarificationToolMessage(message: Message) {
   return message.type === "tool" && message.name === "ask_clarification";
+}
+
+// The ClarificationMiddleware flattens ask_clarification's structured args
+// into plain display text on the ToolMessage; the original args only exist
+// on the preceding AI message's tool_calls. Look them up by tool_call_id.
+function findClarificationArgs(
+  toolMessage: Message,
+  precedingMessages: Message[],
+): ClarificationArgs | undefined {
+  if (toolMessage.type !== "tool") {
+    return undefined;
+  }
+  const toolCallId = toolMessage.tool_call_id;
+  for (const candidate of precedingMessages) {
+    if (candidate.type !== "ai") {
+      continue;
+    }
+    const match = candidate.tool_calls?.find(
+      (toolCall) =>
+        toolCall.id === toolCallId && toolCall.name === "ask_clarification",
+    );
+    if (match) {
+      return normalizeClarificationArgs(match.args);
+    }
+  }
+  return undefined;
+}
+
+// Smaller/local models don't reliably follow the batched `questions: [...]`
+// schema — they sometimes fall back to the pre-batching flat shape
+// (top-level question/clarification_type/context/options instead of an
+// array). Wrap that shape into a single-item batch instead of letting
+// `.questions` be undefined downstream.
+function normalizeClarificationArgs(
+  rawArgs: unknown,
+): ClarificationArgs | undefined {
+  if (!rawArgs || typeof rawArgs !== "object") {
+    return undefined;
+  }
+  const args = rawArgs as Record<string, unknown>;
+  if (Array.isArray(args.questions) && args.questions.length > 0) {
+    return { questions: args.questions as ClarificationQuestion[] };
+  }
+  if (typeof args.question === "string" && args.question.length > 0) {
+    return {
+      questions: [
+        {
+          question: args.question,
+          clarification_type:
+            (args.clarification_type as
+              | ClarificationQuestion["clarification_type"]
+              | undefined) ?? "missing_info",
+          context: args.context as string | undefined,
+          options: args.options as string[] | undefined,
+        },
+      ],
+    };
+  }
+  return undefined;
 }
 
 export function extractPresentFilesFromMessage(message: Message) {

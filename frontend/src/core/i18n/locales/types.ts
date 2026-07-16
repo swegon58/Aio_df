@@ -318,7 +318,19 @@ export interface Translations {
       tools: string;
       skills: string;
       notification: string;
+      plan: string;
       about: string;
+    };
+    plan: {
+      title: string;
+      description: string;
+      creditsLabel: string;
+      creditsPlaceholder: string;
+      currentPlan: string;
+      mostPopular: string;
+      perMonth: string;
+      upgradeButton: string;
+      currentButton: string;
     };
     memory: {
       title: string;
@@ -402,6 +414,9 @@ export interface Translations {
       systemDescription: string;
       lightDescription: string;
       darkDescription: string;
+      accentTitle: string;
+      accentDescription: string;
+      accentDefault: string;
       languageTitle: string;
       languageDescription: string;
     };
@@ -453,6 +468,7 @@ export interface Translations {
       networkError: string;
       updating: string;
       updatePassword: string;
+      sessionTitle: string;
       signOut: string;
     };
     acknowledge: {

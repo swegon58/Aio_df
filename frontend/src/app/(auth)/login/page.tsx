@@ -5,8 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import {
+  ACCENT_HEX,
+  BG_HEX,
+  DEFAULT_ACCENT_HEX,
+  mixHex,
+  useAccent,
+} from "@/components/accent-provider";
+import { DotGrid } from "@/components/dot-grid";
 import { Button } from "@/components/ui/button";
-import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/core/auth/AuthProvider";
 import {
@@ -54,7 +61,8 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const { accent } = useAccent();
   const { t } = useI18n();
 
   const [email, setEmail] = useState("");
@@ -194,21 +202,25 @@ export default function LoginPage() {
     }
   };
 
-  const actualTheme = theme === "system" ? resolvedTheme : theme;
+  const dotGridTheme = resolvedTheme === "light" ? "light" : "dark";
+  const accentHex = accent ? ACCENT_HEX[accent] : DEFAULT_ACCENT_HEX;
 
   return (
     <div className="bg-background relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto">
-      <FlickeringGrid
-        className="absolute inset-0 z-0 mask-[url(/images/deer.svg)] mask-size-[100vw] mask-center mask-no-repeat md:mask-size-[72vh]"
-        squareSize={4}
-        gridGap={4}
-        color={actualTheme === "dark" ? "white" : "black"}
-        maxOpacity={0.3}
-        flickerChance={0.25}
+      <DotGrid
+        key={`${dotGridTheme}-${accent ?? "default"}`}
+        className="absolute inset-0 z-0"
+        dotSize={3}
+        gap={28}
+        baseColor={mixHex(accentHex, BG_HEX[dotGridTheme], dotGridTheme === "light" ? 0.4 : 0.3)}
+        activeColor={mixHex(accentHex, BG_HEX[dotGridTheme], 0.55)}
+        proximity={0}
+        shockRadius={0}
+        shockStrength={0}
       />
       <div className="border-border/20 bg-background/5 w-full max-w-md space-y-6 rounded-3xl border p-8 backdrop-blur-sm">
         <div className="text-center">
-          <h1 className="text-foreground font-serif text-3xl">DeerFlow</h1>
+          <h1 className="text-foreground font-heading text-3xl">Aio</h1>
           <p className="text-muted-foreground mt-2">
             {isLogin ? t.login.signInTitle : t.login.createAccountTitle}
           </p>

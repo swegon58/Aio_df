@@ -852,7 +852,9 @@ export const PromptInput = ({
         ref={formRef}
         {...props}
       >
-        <InputGroup>{children}</InputGroup>
+        <InputGroup className="rounded-[28px] border-border/80 bg-input/60 shadow-md backdrop-blur-none has-[[data-slot=input-group-control]:focus-visible]:border-primary/60 has-[[data-slot=input-group-control]:focus-visible]:ring-primary/20">
+          {children}
+        </InputGroup>
       </form>
     </PromptInputValidationContext.Provider>
   );

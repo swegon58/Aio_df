@@ -9,8 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // ponytail: neo-brutalist offset-shadow lifted from uiverse.io/felipesntr/yellow-robin-29,
+        // recolored to theme --primary instead of the reference's literal yellow.
         default:
-          "cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90",
+          "cursor-pointer border-2 border-primary bg-neutral-900 font-bold text-white shadow-[-4px_4px_0_0_var(--primary)] transition-transform duration-200 hover:-translate-y-1 hover:translate-x-1 hover:shadow-[-2px_2px_0_0_var(--primary)] active:translate-x-0 active:translate-y-0 active:shadow-[-4px_4px_0_0_var(--primary)]",
         destructive:
           "cursor-pointer bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:

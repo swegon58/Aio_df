@@ -55,19 +55,20 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         """
         return any("\u4e00" <= char <= "\u9fff" for char in text)
 
-    def _format_clarification_message(self, args: dict) -> str:
-        """Format the clarification arguments into a user-friendly message.
+    def _format_single_question(self, question_args: dict, index: int | None = None) -> str:
+        """Format one clarification question into a user-friendly message block.
 
         Args:
-            args: The tool call arguments containing clarification details
+            question_args: A single question's args (question, clarification_type, context, options)
+            index: 1-based position when part of a multi-question batch, else None
 
         Returns:
-            Formatted message string
+            Formatted message string for this question
         """
-        question = args.get("question", "")
-        clarification_type = args.get("clarification_type", "missing_info")
-        context = args.get("context")
-        options = args.get("options", [])
+        question = question_args.get("question", "")
+        clarification_type = question_args.get("clarification_type", "missing_info")
+        context = question_args.get("context")
+        options = question_args.get("options", [])
 
         # Some models (e.g. Qwen3-Max) serialize array parameters as JSON strings
         # instead of native arrays. Deserialize and normalize so `options`
@@ -93,6 +94,7 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         }
 
         icon = type_icons.get(clarification_type, "❓")
+        prefix = f"{index}. " if index is not None else ""
 
         # Build the message naturally
         message_parts = []
@@ -101,10 +103,10 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         if context:
             # If there's context, present it first as background
             message_parts.append(f"{icon} {context}")
-            message_parts.append(f"\n{question}")
+            message_parts.append(f"\n{prefix}{question}")
         else:
             # Just the question with icon
-            message_parts.append(f"{icon} {question}")
+            message_parts.append(f"{icon} {prefix}{question}")
 
         # Add options in a cleaner format
         if options and len(options) > 0:
@@ -113,6 +115,31 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
                 message_parts.append(f"  {i}. {option}")
 
         return "\n".join(message_parts)
+
+    def _format_clarification_message(self, args: dict) -> str:
+        """Format the clarification tool-call args (a batch of questions) into a
+        user-friendly message.
+
+        Args:
+            args: The tool call arguments, containing a `questions` list
+
+        Returns:
+            Formatted message string covering every question in the batch
+        """
+        questions = args.get("questions", [])
+        if isinstance(questions, str):
+            try:
+                questions = json.loads(questions)
+            except (json.JSONDecodeError, TypeError):
+                questions = []
+        if not isinstance(questions, list):
+            questions = []
+
+        multi = len(questions) > 1
+        return "\n\n".join(
+            self._format_single_question(q, index=i + 1 if multi else None)
+            for i, q in enumerate(questions)
+        )
 
     def _handle_clarification(self, request: ToolCallRequest) -> Command:
         """Handle clarification request and return command to interrupt execution.
@@ -125,10 +152,10 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         """
         # Extract clarification arguments
         args = request.tool_call.get("args", {})
-        question = args.get("question", "")
+        questions = args.get("questions", [])
 
-        logger.info("Intercepted clarification request")
-        logger.debug("Clarification question: %s", question)
+        logger.info("Intercepted clarification request (%d question(s))", len(questions))
+        logger.debug("Clarification questions: %s", questions)
 
         # Format the clarification message
         formatted_message = self._format_clarification_message(args)

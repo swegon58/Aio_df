@@ -1,6 +1,11 @@
 import type { Message } from "@langchain/langgraph-sdk";
 import type { BaseStream } from "@langchain/langgraph-sdk/react";
-import { ChevronUpIcon, Loader2Icon, RefreshCcwIcon } from "lucide-react";
+import {
+  ChevronUpIcon,
+  Loader2Icon,
+  MessageCircleQuestionMarkIcon,
+  RefreshCcwIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -45,6 +50,8 @@ import { CopyButton } from "../copy-button";
 import { StreamingIndicator } from "../streaming-indicator";
 import { Tooltip } from "../tooltip";
 
+import { ClarificationCard } from "./clarification-card";
+import { useThread } from "./context";
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
@@ -200,6 +207,7 @@ export function MessageList({
     }
     prevIsLoading.current = thread.isLoading;
   }, [thread.isLoading]);
+  const { submitAnswer } = useThread();
   const messages = thread.messages;
   const groupedMessages = getMessageGroups(messages);
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<
@@ -429,13 +437,16 @@ export function MessageList({
             );
           } else if (group.type === "assistant:clarification") {
             const message = group.messages[0];
-            if (message && hasContent(message)) {
+            if (!message || !hasContent(message)) {
+              return null;
+            }
+            const isAnswered = groupIndex !== lastGroupIndex;
+            if (group.args?.questions.length && !isAnswered) {
               return (
                 <div key={group.id} className="w-full">
-                  <MarkdownContent
-                    content={extractContentFromMessage(message)}
-                    isLoading={thread.isLoading}
-                    rehypePlugins={rehypePlugins}
+                  <ClarificationCard
+                    args={group.args}
+                    onAnswer={(answer) => void submitAnswer?.(answer)}
                   />
                   {renderTokenUsage({
                     messages: group.messages,
@@ -444,7 +455,28 @@ export function MessageList({
                 </div>
               );
             }
-            return null;
+            return (
+              <div key={group.id} className="w-full">
+                {group.args && isAnswered ? (
+                  <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                    <MessageCircleQuestionMarkIcon className="size-3.5 shrink-0" />
+                    {group.args.questions.length > 1
+                      ? `${group.args.questions[0]?.question} (+${group.args.questions.length - 1} more)`
+                      : group.args.questions[0]?.question}
+                  </p>
+                ) : (
+                  <MarkdownContent
+                    content={extractContentFromMessage(message)}
+                    isLoading={thread.isLoading}
+                    rehypePlugins={rehypePlugins}
+                  />
+                )}
+                {renderTokenUsage({
+                  messages: group.messages,
+                  turnUsageMessages,
+                })}
+              </div>
+            );
           } else if (group.type === "assistant:present-files") {
             const files: string[] = [];
             for (const message of group.messages) {

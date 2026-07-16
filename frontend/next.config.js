@@ -10,10 +10,6 @@ function getInternalServiceURL(envKey, fallbackURL) {
     ? configured.replace(/\/+$/, "")
     : fallbackURL;
 }
-import nextra from "nextra";
-
-const withNextra = nextra({});
-
 /** @type {import("next").NextConfig} */
 const config = {
   output:
@@ -25,6 +21,7 @@ const config = {
     defaultLocale: "en",
   },
   devIndicators: false,
+  allowedDevOrigins: ["192.168.1.5"],
   async rewrites() {
     const rewrites = [];
     const gatewayURL = getInternalServiceURL(
@@ -78,4 +75,4 @@ const config = {
   },
 };
 
-export default withNextra(config);
+export default config;

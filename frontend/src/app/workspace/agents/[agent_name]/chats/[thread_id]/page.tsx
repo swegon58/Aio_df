@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AgentWelcome } from "@/components/workspace/agent-welcome";
 import { ArtifactTrigger } from "@/components/workspace/artifacts";
 import { ChatBox, useThreadChat } from "@/components/workspace/chats";
@@ -153,6 +152,10 @@ export default function AgentChatPage() {
     },
     [sendMessage, threadId, agent_name],
   );
+  const submitAnswer = useCallback(
+    (text: string) => handleSubmit({ text, files: [] }),
+    [handleSubmit],
+  );
 
   const handleStop = useCallback(async () => {
     await thread.stop();
@@ -164,7 +167,7 @@ export default function AgentChatPage() {
   const hasTodos = (thread.values.todos?.length ?? 0) > 0;
 
   return (
-    <ThreadContext.Provider value={{ thread }}>
+    <ThreadContext.Provider value={{ thread, submitAnswer }}>
       <ChatBox threadId={threadId}>
         <div className="relative flex size-full min-h-0 justify-between">
           <header
@@ -175,7 +178,6 @@ export default function AgentChatPage() {
                 : "bg-background/80 shadow-xs backdrop-blur",
             )}
           >
-            <SidebarTrigger className="md:hidden" />
             {/* Agent badge */}
             <div className="flex min-w-0 shrink-0 items-center gap-1.5 rounded-md border px-2 py-1">
               <BotIcon className="text-primary h-3.5 w-3.5" />

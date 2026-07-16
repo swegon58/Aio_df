@@ -5,13 +5,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useConfigureChannelProvider,
@@ -52,7 +45,6 @@ function getProviderUnavailableReason(
 }
 
 export function WorkspaceChannelsList() {
-  const { open: isSidebarOpen } = useSidebar();
   const { t } = useI18n();
   const { enabled, providers, isLoading, error } = useChannelProviders();
   const connectMutation = useConnectChannelProvider();
@@ -90,31 +82,27 @@ export function WorkspaceChannelsList() {
       });
   };
 
-  if (!isSidebarOpen) {
-    return null;
-  }
-
   if (isLoading) {
     return (
-      <SidebarGroup className="pt-0">
-        <SidebarGroupLabel>{t.sidebar.channels}</SidebarGroupLabel>
-        <div className="space-y-2 px-2 py-1">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
-      </SidebarGroup>
+      <div className="space-y-2 px-2 py-1">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
     );
   }
 
   if (error || !enabled || visibleProviders.length === 0) {
-    return null;
+    return (
+      <div className="text-muted-foreground px-2 py-1 text-sm">
+        No channels available yet.
+      </div>
+    );
   }
 
   return (
-    <SidebarGroup className="pt-0">
-      <SidebarGroupLabel>{t.sidebar.channels}</SidebarGroupLabel>
-      <SidebarMenu>
+    <>
+      <div className="flex flex-col gap-1 px-1">
         {visibleProviders.map((provider) => {
           const canEditRuntimeConfig = providerCanEditRuntimeConfig(provider);
           const isConnected =
@@ -129,8 +117,8 @@ export function WorkspaceChannelsList() {
           const unavailableReason = getProviderUnavailableReason(provider, t);
 
           return (
-            <SidebarMenuItem key={provider.provider}>
-              <div className="hover:bg-sidebar-accent flex h-10 items-center gap-2 rounded-md px-2 transition-colors">
+            <div key={provider.provider}>
+              <div className="hover:bg-accent flex h-10 items-center gap-2 rounded-md px-2 transition-colors">
                 <ChannelProviderIcon
                   provider={provider.provider}
                   className="size-5 shrink-0"
@@ -175,10 +163,10 @@ export function WorkspaceChannelsList() {
                   </span>
                 </Button>
               </div>
-            </SidebarMenuItem>
+            </div>
           );
         })}
-      </SidebarMenu>
+      </div>
       <ChannelRuntimeConfigDialog
         provider={setupProvider}
         open={setupProvider !== null}
@@ -210,6 +198,6 @@ export function WorkspaceChannelsList() {
             });
         }}
       />
-    </SidebarGroup>
+    </>
   );
 }

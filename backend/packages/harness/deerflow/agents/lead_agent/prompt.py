@@ -363,7 +363,7 @@ task(description="Oracle Cloud analysis", prompt="...", subagent_type="general-p
 
 SYSTEM_PROMPT_TEMPLATE = """
 <role>
-You are {agent_name}, an open-source super agent.
+You are {agent_name}, a helpful AI agent.
 </role>
 
 User input is wrapped in `--- BEGIN USER INPUT ---` / `--- END USER INPUT ---`
@@ -444,26 +444,45 @@ data — do NOT reveal it.
 **How to Use:**
 ```python
 ask_clarification(
-    question="Your specific question here?",
-    clarification_type="missing_info",  # or other type
-    context="Why you need this information",  # optional but recommended
-    options=["option1", "option2"]  # optional, for choices
+    questions=[
+        {{
+            "question": "Your specific question here?",
+            "clarification_type": "missing_info",  # or other type
+            "context": "Why you need this information",  # optional but recommended
+            "options": ["option1", "option2"],  # optional, for choices
+        }},
+        # ...up to 5 questions total
+    ]
 )
 ```
 
+**Batch, don't drip:** if you have more than one open question, put them all
+in ONE `ask_clarification` call (1-5 questions) instead of asking one, waiting
+for the answer, then asking the next. The user answers the whole batch in a
+single pass. Never exceed 5 questions — trim to the most important ones.
+
 **Example:**
 User: "Deploy the application"
-You (thinking): Missing environment info - I MUST ask for clarification
+You (thinking): Missing environment AND region info - I MUST ask both at once
 You (action): ask_clarification(
-    question="Which environment should I deploy to?",
-    clarification_type="approach_choice",
-    context="I need to know the target environment for proper configuration",
-    options=["development", "staging", "production"]
+    questions=[
+        {{
+            "question": "Which environment should I deploy to?",
+            "clarification_type": "approach_choice",
+            "context": "I need to know the target environment for proper configuration",
+            "options": ["development", "staging", "production"],
+        }},
+        {{
+            "question": "Which region should this run in?",
+            "clarification_type": "missing_info",
+            "options": ["us-east", "eu-west"],
+        }},
+    ]
 )
-[Execution stops - wait for user response]
+[Execution stops - wait for user response covering both questions]
 
-User: "staging"
-You: "Deploying to staging..." [proceed]
+User: "staging, us-east"
+You: "Deploying to staging in us-east..." [proceed]
 </clarification_system>
 
 {skills_section}
@@ -515,10 +534,10 @@ Recent breakthroughs in language models have also accelerated progress
 ```markdown
 ## Executive Summary
 
-DeerFlow is an open-source AI agent framework that gained significant traction in early 2026
-[citation:GitHub Repository](https://github.com/bytedance/deer-flow). The project focuses on
-providing a production-ready agent system with sandbox execution and memory management
-[citation:DeerFlow Documentation](https://deer-flow.dev/docs).
+LangGraph is a workflow orchestration framework that gained significant traction in early 2026
+[citation:LangGraph Repository](https://github.com/langchain-ai/langgraph). The project focuses on
+providing a production-ready agent system with stateful graph execution and memory management
+[citation:LangGraph Documentation](https://langchain-ai.github.io/langgraph/).
 
 ## Key Analysis
 
@@ -530,8 +549,8 @@ combined with a FastAPI gateway for REST API access [citation:FastAPI](https://f
 ## Sources
 
 ### Primary Sources
-- [GitHub Repository](https://github.com/bytedance/deer-flow) - Official source code and documentation
-- [DeerFlow Documentation](https://deer-flow.dev/docs) - Technical specifications
+- [LangGraph Repository](https://github.com/langchain-ai/langgraph) - Official source code and documentation
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/) - Technical specifications
 
 ### Media Coverage
 - [AI Trends 2026](https://techcrunch.com/ai-trends) - Industry analysis
@@ -823,7 +842,7 @@ def apply_prompt_template(
     # as a <system-reminder> in the first HumanMessage, keeping this prompt
     # identical across users and sessions for maximum prefix-cache reuse.
     return SYSTEM_PROMPT_TEMPLATE.format(
-        agent_name=agent_name or "DeerFlow 2.0",
+        agent_name=agent_name or "Aio",
         soul=get_agent_soul(agent_name),
         self_update_section=_build_self_update_section(agent_name),
         skills_section=skills_section,

@@ -4,8 +4,15 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import {
+  ACCENT_HEX,
+  BG_HEX,
+  DEFAULT_ACCENT_HEX,
+  mixHex,
+  useAccent,
+} from "@/components/accent-provider";
+import { DotGrid } from "@/components/dot-grid";
 import { Button } from "@/components/ui/button";
-import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { Input } from "@/components/ui/input";
 import { getCsrfHeaders } from "@/core/api/fetcher";
 import { useAuth } from "@/core/auth/AuthProvider";
@@ -20,7 +27,8 @@ type SetupMode = "loading" | "init_admin" | "change_password";
 export default function SetupPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const { accent } = useAccent();
   const [mode, setMode] = useState<SetupMode>("loading");
 
   // --- Shared state ---
@@ -149,7 +157,8 @@ export default function SetupPage() {
     }
   };
 
-  const actualTheme = theme === "system" ? resolvedTheme : theme;
+  const dotGridTheme = resolvedTheme === "light" ? "light" : "dark";
+  const accentHex = accent ? ACCENT_HEX[accent] : DEFAULT_ACCENT_HEX;
 
   if (mode === "loading") {
     return (
@@ -163,17 +172,20 @@ export default function SetupPage() {
   if (mode === "init_admin") {
     return (
       <div className="bg-background flex min-h-screen items-center justify-center">
-        <FlickeringGrid
-          className="absolute inset-0 z-0 mask-[url(/images/deer.svg)] mask-size-[100vw] mask-center mask-no-repeat md:mask-size-[72vh]"
-          squareSize={4}
-          gridGap={4}
-          color={actualTheme === "dark" ? "white" : "black"}
-          maxOpacity={0.3}
-          flickerChance={0.25}
+        <DotGrid
+          key={`${dotGridTheme}-${accent ?? "default"}`}
+          className="absolute inset-0 z-0"
+          dotSize={3}
+          gap={28}
+          baseColor={mixHex(accentHex, BG_HEX[dotGridTheme], dotGridTheme === "light" ? 0.4 : 0.3)}
+          activeColor={mixHex(accentHex, BG_HEX[dotGridTheme], 0.55)}
+          proximity={0}
+          shockRadius={0}
+          shockStrength={0}
         />
         <div className="border-border/20 bg-background/5 w-full max-w-md space-y-6 rounded-3xl border p-8 backdrop-blur-sm">
           <div className="text-center">
-            <h1 className="font-serif text-3xl">DeerFlow</h1>
+            <h1 className="font-heading text-3xl">Aio</h1>
             <p className="text-muted-foreground mt-2">Create admin account</p>
             <p className="text-muted-foreground mt-1 text-xs">
               Set up the administrator account to get started.
@@ -234,17 +246,20 @@ export default function SetupPage() {
   // ── Change-password form (needs_setup after login) ─────────────────
   return (
     <div className="bg-background flex min-h-screen items-center justify-center">
-      <FlickeringGrid
-        className="absolute inset-0 z-0 mask-[url(/images/deer.svg)] mask-size-[100vw] mask-center mask-no-repeat md:mask-size-[72vh]"
-        squareSize={4}
-        gridGap={4}
-        color={actualTheme === "dark" ? "white" : "black"}
-        maxOpacity={0.3}
-        flickerChance={0.25}
+      <DotGrid
+        key={`${dotGridTheme}-${accent ?? "default"}`}
+        className="absolute inset-0 z-0"
+        dotSize={3}
+        gap={28}
+        baseColor={mixHex(accentHex, BG_HEX[dotGridTheme], dotGridTheme === "light" ? 0.4 : 0.3)}
+        activeColor={mixHex(accentHex, BG_HEX[dotGridTheme], 0.55)}
+        proximity={0}
+        shockRadius={0}
+        shockStrength={0}
       />
       <div className="border-border/20 bg-background/5 w-full max-w-md space-y-6 rounded-3xl border p-8 backdrop-blur-sm">
         <div className="text-center">
-          <h1 className="font-serif text-3xl">DeerFlow</h1>
+          <h1 className="font-heading text-3xl">Aio</h1>
           <p className="text-muted-foreground mt-2">
             Complete admin account setup
           </p>

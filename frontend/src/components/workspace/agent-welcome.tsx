@@ -24,10 +24,10 @@ export function AgentWelcome({
         className,
       )}
     >
-      <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-full">
+      <div className="icon-badge-glass flex h-12 w-12 items-center justify-center rounded-full">
         <BotIcon className="text-primary h-6 w-6" />
       </div>
-      <div className="text-2xl font-bold">{displayName}</div>
+      <div className="font-heading text-2xl font-bold">{displayName}</div>
       {description && (
         <p className="text-muted-foreground max-w-sm text-sm">{description}</p>
       )}

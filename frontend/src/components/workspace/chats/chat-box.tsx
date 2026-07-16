@@ -11,6 +11,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { env } from "@/env";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 import {
@@ -20,8 +21,12 @@ import {
 } from "../artifacts";
 import { useThread } from "../messages/context";
 
-const CLOSE_MODE = { chat: 100, artifacts: 0 };
-const OPEN_MODE = { chat: 60, artifacts: 40 };
+import { RightStatusPanel } from "./right-status-panel";
+
+const CLOSE_MODE = { chat: 100, artifacts: 0, status: 0 };
+const OPEN_MODE = { chat: 60, artifacts: 40, status: 0 };
+const CLOSE_MODE_WITH_STATUS = { chat: 70, artifacts: 0, status: 30 };
+const OPEN_MODE_WITH_STATUS = { chat: 40, artifacts: 30, status: 30 };
 
 const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   children,
@@ -31,6 +36,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   const pathname = usePathname();
   const threadIdRef = useRef(threadId);
   const layoutRef = useRef<GroupImperativeHandle>(null);
+  const isMobile = useIsMobile();
 
   const {
     artifacts,
@@ -99,19 +105,21 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
 
   useEffect(() => {
     if (layoutRef.current) {
-      if (artifactPanelOpen) {
-        layoutRef.current.setLayout(OPEN_MODE);
+      if (isMobile) {
+        layoutRef.current.setLayout(artifactPanelOpen ? OPEN_MODE : CLOSE_MODE);
       } else {
-        layoutRef.current.setLayout(CLOSE_MODE);
+        layoutRef.current.setLayout(
+          artifactPanelOpen ? OPEN_MODE_WITH_STATUS : CLOSE_MODE_WITH_STATUS,
+        );
       }
     }
-  }, [artifactPanelOpen]);
+  }, [artifactPanelOpen, isMobile]);
 
   return (
     <ResizablePanelGroup
       id={`${resizableIdBase}-panels`}
       orientation="horizontal"
-      defaultLayout={{ chat: 100, artifacts: 0 }}
+      defaultLayout={CLOSE_MODE_WITH_STATUS}
       groupRef={layoutRef}
     >
       <ResizablePanel className="relative" defaultSize={100} id="chat">
@@ -179,6 +187,21 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
             </div>
           )}
         </div>
+      </ResizablePanel>
+      <ResizableHandle
+        id={`${resizableIdBase}-status-separator`}
+        className={cn(
+          "opacity-33 hover:opacity-100",
+          isMobile && "pointer-events-none opacity-0",
+        )}
+      />
+      <ResizablePanel
+        className="border-border/60 border-l"
+        defaultSize={30}
+        minSize={20}
+        id="status"
+      >
+        {!isMobile && <RightStatusPanel />}
       </ResizablePanel>
     </ResizablePanelGroup>
   );

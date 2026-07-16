@@ -719,27 +719,36 @@ export function InputBox({
     setFollowupsLoading(true);
     setFollowups([]);
 
-    fetch(`${getBackendBaseURL()}/api/threads/${threadId}/suggestions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: recent,
-        n: 3,
-        model_name: context.model_name ?? undefined,
-      }),
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          return { suggestions: [] as string[] };
-        }
-        return (await res.json()) as { suggestions?: string[] };
-      })
-      .then((data) => {
-        const suggestions = (data.suggestions ?? [])
-          .map((s) => (typeof s === "string" ? s.trim() : ""))
-          .filter((s) => s.length > 0)
-          .slice(0, 5);
+    const requestSuggestions = async (): Promise<string[]> => {
+      const res = await fetch(
+        `${getBackendBaseURL()}/api/threads/${threadId}/suggestions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: recent,
+            n: 3,
+            model_name: context.model_name ?? undefined,
+          }),
+          signal: controller.signal,
+        },
+      );
+      if (!res.ok) {
+        throw new Error(`suggestions request failed: ${res.status}`);
+      }
+      const data = (await res.json()) as { suggestions?: string[] };
+      return (data.suggestions ?? [])
+        .map((s) => (typeof s === "string" ? s.trim() : ""))
+        .filter((s) => s.length > 0)
+        .slice(0, 5);
+    };
+
+    // ponytail: local-model backend can flake/timeout on the first call;
+    // one retry is enough to keep follow-ups showing without a full
+    // retry-queue system.
+    requestSuggestions()
+      .catch(() => requestSuggestions())
+      .then((suggestions) => {
         setFollowups(suggestions);
       })
       .catch(() => {
@@ -844,7 +853,7 @@ export function InputBox({
       )}
       <PromptInput
         className={cn(
-          "bg-background/85 rounded-2xl backdrop-blur-sm transition-all duration-300 ease-out *:data-[slot='input-group']:rounded-2xl",
+          "glass-surface rounded-2xl transition-all duration-300 ease-out *:data-[slot='input-group']:rounded-2xl",
           className,
         )}
         disabled={disabled}
@@ -1285,48 +1294,73 @@ function SuggestionList({
     [textareaRef, textInput],
   );
   return (
-    <Suggestions className="min-h-16 w-full max-w-full justify-center px-4 sm:w-fit sm:px-0">
-      <ConfettiButton
-        className="text-muted-foreground cursor-pointer rounded-full px-4 text-xs font-normal"
-        variant="outline"
-        size="sm"
-        onClick={() => handleSuggestionClick(t.inputBox.surpriseMePrompt)}
-      >
-        <SparklesIcon className="size-4" /> {t.inputBox.surpriseMe}
-      </ConfettiButton>
-      {t.inputBox.suggestions.map((suggestion) => (
-        <Suggestion
-          key={suggestion.suggestion}
-          icon={suggestion.icon}
-          suggestion={suggestion.suggestion}
-          onClick={() => handleSuggestionClick(suggestion.prompt)}
-        />
-      ))}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Suggestion icon={PlusIcon} suggestion={t.common.create} />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuGroup>
-            {t.inputBox.suggestionsCreate.map((suggestion, index) =>
-              "type" in suggestion && suggestion.type === "separator" ? (
-                <DropdownMenuSeparator key={index} />
-              ) : (
-                !("type" in suggestion) && (
-                  <DropdownMenuItem
-                    key={suggestion.suggestion}
-                    onClick={() => handleSuggestionClick(suggestion.prompt)}
-                  >
-                    {suggestion.icon && <suggestion.icon className="size-4" />}
-                    {suggestion.suggestion}
-                  </DropdownMenuItem>
-                )
-              ),
-            )}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </Suggestions>
+    <div className="flex w-full max-w-xl flex-col items-center gap-3 px-4 sm:px-0">
+      <Suggestions className="w-full max-w-full justify-center sm:w-fit">
+        <ConfettiButton
+          className="glass-surface text-muted-foreground cursor-pointer rounded-full px-4 text-xs font-normal"
+          variant="outline"
+          size="sm"
+          onClick={() => handleSuggestionClick(t.inputBox.surpriseMePrompt)}
+        >
+          <SparklesIcon className="size-4" /> {t.inputBox.surpriseMe}
+        </ConfettiButton>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Suggestion
+              className="glass-surface"
+              icon={PlusIcon}
+              suggestion={t.common.create}
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuGroup>
+              {t.inputBox.suggestionsCreate.map((suggestion, index) =>
+                "type" in suggestion && suggestion.type === "separator" ? (
+                  <DropdownMenuSeparator key={index} />
+                ) : (
+                  !("type" in suggestion) && (
+                    <DropdownMenuItem
+                      key={suggestion.suggestion}
+                      onClick={() => handleSuggestionClick(suggestion.prompt)}
+                    >
+                      {suggestion.icon && (
+                        <suggestion.icon className="size-4" />
+                      )}
+                      {suggestion.suggestion}
+                    </DropdownMenuItem>
+                  )
+                ),
+              )}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Suggestions>
+      <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+        {t.inputBox.suggestions.map((suggestion) => {
+          const Icon = suggestion.icon;
+          return (
+            <button
+              key={suggestion.suggestion}
+              type="button"
+              onClick={() => handleSuggestionClick(suggestion.prompt)}
+              className="glass-surface group hover:border-primary/40 hover:bg-accent/50 flex flex-col gap-3 rounded-lg p-4 text-left transition-colors"
+            >
+              <span className="icon-badge-glass flex size-8 items-center justify-center rounded-md">
+                <Icon className="text-primary size-4" aria-hidden />
+              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-foreground text-sm font-medium">
+                  {suggestion.suggestion}
+                </span>
+                <span className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
+                  {suggestion.prompt}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

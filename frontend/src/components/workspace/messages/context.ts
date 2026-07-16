@@ -6,6 +6,9 @@ import type { AgentThreadState } from "@/core/threads";
 export interface ThreadContextType {
   thread: BaseStream<AgentThreadState>;
   isMock?: boolean;
+  // Sends free text as the next human chat message (used by e.g. the
+  // clarification card to submit an answer without a separate API call).
+  submitAnswer?: (text: string) => void | Promise<void>;
 }
 
 export const ThreadContext = createContext<ThreadContextType | undefined>(

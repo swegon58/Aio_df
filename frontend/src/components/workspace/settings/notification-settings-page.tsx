@@ -49,20 +49,14 @@ export function NotificationSettingsPage() {
   return (
     <SettingsSection
       title={t.settings.notification.title}
-      description={
-        <div className="flex items-center gap-2">
-          <div>{t.settings.notification.description}</div>
-          <div>
-            <Switch
-              aria-label={t.settings.notification.title}
-              disabled={permission !== "granted"}
-              checked={
-                permission === "granted" && settings.notification.enabled
-              }
-              onCheckedChange={handleEnableNotification}
-            />
-          </div>
-        </div>
+      description={t.settings.notification.description}
+      action={
+        <Switch
+          aria-label={t.settings.notification.title}
+          disabled={permission !== "granted"}
+          checked={permission === "granted" && settings.notification.enabled}
+          onCheckedChange={handleEnableNotification}
+        />
       }
     >
       <div className="flex flex-col gap-4">

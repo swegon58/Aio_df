@@ -38,13 +38,13 @@ const features: BentoCardProps[] = [
     color: COLOR,
     label: "Flexible",
     title: "Multi-Model Support",
-    description: "Doubao, DeepSeek, OpenAI, Gemini, etc.",
+    description: "OpenAI, Anthropic, Gemini, DeepSeek, etc.",
   },
   {
     color: COLOR,
-    label: "Free",
-    title: "Open Source",
-    description: "MIT License, self-hosted, full control",
+    label: "Private",
+    title: "Your Data, Your Control",
+    description: "Full control over your data and conversations",
   },
 ];
 
@@ -52,8 +52,8 @@ export function WhatsNewSection({ className }: { className?: string }) {
   return (
     <Section
       className={cn("", className)}
-      title="Whats New in DeerFlow 2.0"
-      subtitle="DeerFlow is now evolving from a Deep Research agent into a full-stack Super Agent"
+      title="What's New in Aio"
+      subtitle="Aio is a full-stack personal AI agent"
     >
       <div className="flex w-full items-center justify-center">
         <MagicBento data={features} />

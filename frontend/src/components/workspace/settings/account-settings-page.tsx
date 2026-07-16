@@ -5,6 +5,13 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemTitle,
+} from "@/components/ui/item";
 import { fetch, getCsrfHeaders } from "@/core/api/fetcher";
 import { useAuth } from "@/core/auth/AuthProvider";
 import { parseAuthError } from "@/core/auth/types";
@@ -72,30 +79,46 @@ export function AccountSettingsPage() {
   return (
     <div className="space-y-8">
       <SettingsSection title={t.settings.account.profileTitle}>
-        <div className="space-y-2">
-          <div className="grid grid-cols-[max-content_max-content] items-center gap-4">
-            <span className="text-muted-foreground text-sm">
-              {t.settings.account.email}
-            </span>
-            <span className="text-sm font-medium">{user?.email ?? "—"}</span>
-            <span className="text-muted-foreground text-sm">
-              {t.settings.account.role}
-            </span>
-            <span className="text-sm font-medium capitalize">
-              {user?.system_role ?? "—"}
-            </span>
-            {isSsoUser && (
-              <>
-                <span className="text-muted-foreground text-sm">
+        <ItemGroup className="gap-2">
+          <Item variant="outline" size="sm">
+            <ItemContent>
+              <ItemTitle className="text-muted-foreground font-normal">
+                {t.settings.account.email}
+              </ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <span className="text-sm font-medium">
+                {user?.email ?? "—"}
+              </span>
+            </ItemActions>
+          </Item>
+          <Item variant="outline" size="sm">
+            <ItemContent>
+              <ItemTitle className="text-muted-foreground font-normal">
+                {t.settings.account.role}
+              </ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <span className="text-sm font-medium capitalize">
+                {user?.system_role ?? "—"}
+              </span>
+            </ItemActions>
+          </Item>
+          {isSsoUser && (
+            <Item variant="outline" size="sm">
+              <ItemContent>
+                <ItemTitle className="text-muted-foreground font-normal">
                   {t.settings.account.ssoProvider}
-                </span>
+                </ItemTitle>
+              </ItemContent>
+              <ItemActions>
                 <span className="text-sm font-medium capitalize">
                   {user?.oauth_provider}
                 </span>
-              </>
-            )}
-          </div>
-        </div>
+              </ItemActions>
+            </Item>
+          )}
+        </ItemGroup>
       </SettingsSection>
 
       {!isSsoUser ? (
@@ -155,7 +178,7 @@ export function AccountSettingsPage() {
         </SettingsSection>
       )}
 
-      <SettingsSection title="" description="">
+      <SettingsSection title={t.settings.account.sessionTitle}>
         <Button
           variant="destructive"
           size="sm"
