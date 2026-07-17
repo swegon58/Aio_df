@@ -556,15 +556,7 @@
   align-items: flex-start;
   padding: 20px 0;
   overflow: hidden;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
   z-index: 110;
-}
-
-.icon-rail:hover,
-.icon-rail:focus-within {
-  width: 248px;
-  border-color: color-mix(in oklch, var(--sidebar-border) 72%, transparent);
-  box-shadow: 18px 0 32px rgba(0, 0, 0, 0.22);
 }
 
 .icon-rail-main {
@@ -633,72 +625,14 @@
 }
 
 .icon-rail-label {
-  min-width: 132px;
   color: var(--foreground);
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-6px);
-  transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
-.icon-rail:hover .icon-rail-label,
-.icon-rail:focus-within .icon-rail-label {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(0);
-}
-
-.icon-rail-collapse-btn {
-  align-self: center;
-  margin-top: 10px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
-  background: transparent;
-  color: var(--muted-foreground);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color 150ms ease, background-color 150ms ease;
-}
-
-.icon-rail-collapse-btn:hover {
-  color: var(--foreground);
-  background: color-mix(in oklch, var(--sidebar-accent) 70%, transparent);
-}
-
-.icon-rail-slot--collapsed {
-  width: 32px;
-}
-
-.icon-rail-reopen {
-  position: absolute;
-  top: 50%;
-  left: 4px;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 56px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
-  background: var(--sidebar);
-  color: var(--muted-foreground);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  z-index: 110;
-}
-
-.icon-rail-reopen:hover {
-  color: var(--foreground);
-  background: color-mix(in oklch, var(--sidebar-accent) 70%, transparent);
+.icon-rail-item--compact .icon-rail-label {
+  display: none;
 }
 
 .icon-rail-mobile-toggle {

@@ -26,6 +26,10 @@ import { textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
+// ponytail: home/welcome hero screen temporarily disabled per owner request
+// (2026-07-17, mobile layout complaint) — flip to `true` to restore.
+const WELCOME_MODE_ENABLED = false;
+
 export default function ChatPage() {
   const { t } = useI18n();
   const router = useRouter();
@@ -36,7 +40,9 @@ export default function ChatPage() {
   // welcome layout (centered input, hero, quick actions); we flip it to false
   // the moment the user submits so the UI animates immediately, even though
   // `isNewThread` stays true until the backend actually creates the thread.
-  const [isWelcomeMode, setIsWelcomeMode] = useState(isNewThread);
+  const [isWelcomeMode, setIsWelcomeMode] = useState(
+    WELCOME_MODE_ENABLED && isNewThread,
+  );
   const [settings, setSettings] = useThreadSettings(threadId);
   const [localSettings] = useLocalSettings();
   const { tokenUsageEnabled } = useModels();
@@ -56,7 +62,7 @@ export default function ChatPage() {
   // via onSend below — `isNewThread` stays true until onStart, so this effect
   // is harmless during the submit transition.
   useEffect(() => {
-    setIsWelcomeMode(isNewThread);
+    if (WELCOME_MODE_ENABLED) setIsWelcomeMode(isNewThread);
   }, [isNewThread]);
 
   const { showNotification } = useNotification();

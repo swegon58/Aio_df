@@ -29,6 +29,7 @@ export function IconRail({ variant, items, onItemClick }: IconRailProps) {
           className={`icon-rail-item${isCompact ? " icon-rail-item--compact" : ""}${active ? " active" : ""}`}
           onClick={() => onItemClick(key)}
           aria-label={isCompact ? label : undefined}
+          title={isCompact ? label : undefined}
         >
           <span className="icon-rail-item-highlight">
             <Icon className={isCompact ? "w-7 h-7" : "w-5.5 h-5.5"} />

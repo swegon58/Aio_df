@@ -21,7 +21,7 @@ const config = {
     defaultLocale: "en",
   },
   devIndicators: false,
-  allowedDevOrigins: ["192.168.1.5"],
+  allowedDevOrigins: ["192.168.1.5", "*.trycloudflare.com"],
   async rewrites() {
     const rewrites = [];
     const gatewayURL = getInternalServiceURL(

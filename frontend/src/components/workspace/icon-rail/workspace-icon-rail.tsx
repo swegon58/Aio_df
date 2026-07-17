@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu, MessageSquarePlusIcon } from "lucide-react";
+import { Menu, MessageSquarePlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,24 +24,18 @@ import { useIconRailItems, type IconRailKey } from "./use-icon-rail-items";
 export function WorkspaceIconRail() {
   const { t } = useI18n();
   const router = useRouter();
-  const items = useIconRailItems();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [chatsOpen, setChatsOpen] = useState(false);
   const [channelsOpen, setChannelsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      localStorage.getItem("aio.icon-rail.collapsed") === "1",
-  );
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("aio.icon-rail.collapsed", next ? "1" : "0");
-      return next;
-    });
-  };
+  const openOverlayKey = channelsOpen
+    ? "channels"
+    : settingsOpen
+      ? "settings"
+      : chatsOpen
+        ? "chats"
+        : null;
+  const items = useIconRailItems(openOverlayKey);
 
   const handleItemClick = (key: string) => {
     setMobileOpen(false);
@@ -63,38 +57,17 @@ export function WorkspaceIconRail() {
 
   return (
     <>
-      {collapsed ? (
-        <div className="icon-rail-slot icon-rail-slot--collapsed">
-          <button
-            type="button"
-            className="icon-rail-reopen"
-            onClick={toggleCollapsed}
-            aria-label="Expand sidebar"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
-        <div className="icon-rail-slot">
-          <nav className="icon-rail icon-rail--compact">
-            <div className="icon-rail-main">
-              <IconRail
-                variant="compact"
-                items={items}
-                onItemClick={handleItemClick}
-              />
-            </div>
-            <button
-              type="button"
-              className="icon-rail-collapse-btn"
-              onClick={toggleCollapsed}
-              aria-label="Collapse sidebar"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </nav>
-        </div>
-      )}
+      <div className="icon-rail-slot">
+        <nav className="icon-rail icon-rail--compact">
+          <div className="icon-rail-main">
+            <IconRail
+              variant="compact"
+              items={items}
+              onItemClick={handleItemClick}
+            />
+          </div>
+        </nav>
+      </div>
 
       <button
         type="button"

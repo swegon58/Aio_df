@@ -127,7 +127,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
       <ResizablePanel
         className="border-border/60 border-l"
         defaultSize={30}
-        minSize={20}
+        minSize={artifactPanelOpen ? 20 : 0}
         id="right"
       >
         <RightStatusPanel

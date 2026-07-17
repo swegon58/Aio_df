@@ -9,5 +9,5 @@ export NEXT_TELEMETRY_DISABLED=1
 export SKIP_ENV_VALIDATION=1
 export DEER_FLOW_AUTH_DISABLED=1
 
-cd /home/swegon/AI_Agent/deer-flow/frontend
+cd /home/swegon/AI_Agent/Aio_df/frontend
 exec pnpm dev --hostname 0.0.0.0 --port 3002

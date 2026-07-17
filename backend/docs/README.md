@@ -6,7 +6,7 @@ This directory contains detailed documentation for the DeerFlow backend.
 
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture overview |
+| [architecture/](architecture/) | System architecture, split by subsystem (authoritative) |
 | [API.md](API.md) | Complete API reference |
 | [AUTH_DESIGN.md](AUTH_DESIGN.md) | User authentication, CSRF, and per-user isolation design |
 | [CONFIGURATION.md](CONFIGURATION.md) | Configuration options |
@@ -34,7 +34,7 @@ This directory contains detailed documentation for the DeerFlow backend.
 
 1. **New to DeerFlow?** Start with [SETUP.md](SETUP.md) for quick installation
 2. **Configuring the system?** See [CONFIGURATION.md](CONFIGURATION.md)
-3. **Understanding the architecture?** Read [ARCHITECTURE.md](ARCHITECTURE.md)
+3. **Understanding the architecture?** Read [architecture/](architecture/)
 4. **Building integrations?** Check [API.md](API.md) for API reference
 
 ## Document Organization
@@ -42,7 +42,8 @@ This directory contains detailed documentation for the DeerFlow backend.
 ```
 docs/
 ├── README.md                  # This file
-├── ARCHITECTURE.md            # System architecture
+├── architecture/              # System architecture, split by subsystem (authoritative)
+├── ARCHITECTURE.md            # (stale, redirects to architecture/)
 ├── API.md                     # API reference
 ├── AUTH_DESIGN.md             # User authentication and isolation design
 ├── CONFIGURATION.md           # Configuration guide

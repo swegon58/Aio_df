@@ -33,16 +33,14 @@ import {
   PromptInputActionMenuTrigger,
   PromptInputAttachment,
   PromptInputAttachments,
-  PromptInputBody,
   PromptInputButton,
-  PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
-  PromptInputTools,
   usePromptInputAttachments,
   usePromptInputController,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
+import { InputGroupAddon } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import { ConfettiButton } from "@/components/ui/confetti-button";
 import {
@@ -853,7 +851,7 @@ export function InputBox({
       )}
       <PromptInput
         className={cn(
-          "glass-surface rounded-2xl transition-all duration-300 ease-out *:data-[slot='input-group']:rounded-2xl",
+          "glass-surface rounded-full transition-all duration-300 ease-out *:data-[slot='input-group']:flex-wrap *:data-[slot='input-group']:rounded-full",
           className,
         )}
         disabled={disabled}
@@ -872,23 +870,26 @@ export function InputBox({
         <PromptInputAttachments>
           {(attachment) => <PromptInputAttachment data={attachment} />}
         </PromptInputAttachments>
-        <PromptInputBody className="absolute top-0 right-0 left-0 z-3">
-          <PromptInputTextarea
-            className={cn("size-full")}
-            disabled={disabled}
-            placeholder={t.inputBox.placeholder}
-            autoFocus={autoFocus}
-            defaultValue={initialValue}
-            onBlur={() => setTextareaFocused(false)}
-            onChange={handlePromptTextareaChange}
-            onFocus={() => setTextareaFocused(true)}
-            onKeyDown={handlePromptTextareaKeyDown}
-            ref={textareaRef}
-          />
-        </PromptInputBody>
-        <PromptInputFooter className="flex flex-wrap gap-2 sm:flex-nowrap">
-          <PromptInputTools className="min-w-0 flex-1 flex-wrap">
-            {/* TODO: Add more connectors here
+        <InputGroupAddon align="inline-start" className="self-start pt-2">
+          <AddAttachmentsButton className="px-2!" />
+        </InputGroupAddon>
+        <PromptInputTextarea
+          className={cn("min-w-28 flex-1")}
+          disabled={disabled}
+          placeholder={t.inputBox.placeholder}
+          autoFocus={autoFocus}
+          defaultValue={initialValue}
+          onBlur={() => setTextareaFocused(false)}
+          onChange={handlePromptTextareaChange}
+          onFocus={() => setTextareaFocused(true)}
+          onKeyDown={handlePromptTextareaKeyDown}
+          ref={textareaRef}
+        />
+        <InputGroupAddon
+          align="inline-end"
+          className="flex-wrap justify-end gap-1 self-end pb-2"
+        >
+          {/* TODO: Add more connectors here
           <PromptInputActionMenu>
             <PromptInputActionMenuTrigger className="px-2!" />
             <PromptInputActionMenuContent>
@@ -897,7 +898,6 @@ export function InputBox({
               />
             </PromptInputActionMenuContent>
           </PromptInputActionMenu> */}
-            <AddAttachmentsButton className="px-2!" />
             <PromptInputActionMenu>
               <ModeHoverGuide
                 mode={
@@ -944,6 +944,7 @@ export function InputBox({
                   <PromptInputActionMenu>
                     <PromptInputActionMenuItem
                       className={cn(
+                        "items-start",
                         context.mode === "flash"
                           ? "text-accent-foreground"
                           : "text-muted-foreground/65",
@@ -974,6 +975,7 @@ export function InputBox({
                     {supportThinking && (
                       <PromptInputActionMenuItem
                         className={cn(
+                          "items-start",
                           context.mode === "thinking"
                             ? "text-accent-foreground"
                             : "text-muted-foreground/65",
@@ -1004,6 +1006,7 @@ export function InputBox({
                     )}
                     <PromptInputActionMenuItem
                       className={cn(
+                        "items-start",
                         context.mode === "pro"
                           ? "text-accent-foreground"
                           : "text-muted-foreground/65",
@@ -1033,6 +1036,7 @@ export function InputBox({
                     </PromptInputActionMenuItem>
                     <PromptInputActionMenuItem
                       className={cn(
+                        "items-start",
                         context.mode === "ultra"
                           ? "text-accent-foreground"
                           : "text-muted-foreground/65",
@@ -1092,6 +1096,7 @@ export function InputBox({
                     <PromptInputActionMenu>
                       <PromptInputActionMenuItem
                         className={cn(
+                          "items-start",
                           context.reasoning_effort === "minimal"
                             ? "text-accent-foreground"
                             : "text-muted-foreground/65",
@@ -1114,6 +1119,7 @@ export function InputBox({
                       </PromptInputActionMenuItem>
                       <PromptInputActionMenuItem
                         className={cn(
+                          "items-start",
                           context.reasoning_effort === "low"
                             ? "text-accent-foreground"
                             : "text-muted-foreground/65",
@@ -1136,6 +1142,7 @@ export function InputBox({
                       </PromptInputActionMenuItem>
                       <PromptInputActionMenuItem
                         className={cn(
+                          "items-start",
                           context.reasoning_effort === "medium" ||
                             !context.reasoning_effort
                             ? "text-accent-foreground"
@@ -1160,6 +1167,7 @@ export function InputBox({
                       </PromptInputActionMenuItem>
                       <PromptInputActionMenuItem
                         className={cn(
+                          "items-start",
                           context.reasoning_effort === "high"
                             ? "text-accent-foreground"
                             : "text-muted-foreground/65",
@@ -1185,8 +1193,6 @@ export function InputBox({
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
             )}
-          </PromptInputTools>
-          <PromptInputTools className="min-w-0 justify-end">
             <ModelSelector
               open={modelDialogOpen}
               onOpenChange={setModelDialogOpen}
@@ -1231,8 +1237,7 @@ export function InputBox({
               variant="outline"
               status={status}
             />
-          </PromptInputTools>
-        </PromptInputFooter>
+          </InputGroupAddon>
         {!isWelcomeMode && (
           <div className="bg-background absolute right-0 -bottom-[17px] left-0 z-0 h-4"></div>
         )}
