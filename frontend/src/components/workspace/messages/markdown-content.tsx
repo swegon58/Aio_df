@@ -81,8 +81,17 @@ export function MarkdownContent({
       rehypePlugins={effectiveRehypePlugins}
       components={components}
       parseIncompleteMarkdown={isLoading}
+      mermaidConfig={MERMAID_CONFIG}
     >
       {normalizedContent}
     </SafeMessageResponse>
   );
 }
+
+// mermaid's xychart-beta defaults to a 700x500 canvas — too tight for 3+
+// long category labels, which pushes bars/labels past the canvas edge
+// where the SVG's own overflow:hidden clips them. Wider canvas gives the
+// layout engine room; ponytail: static bump, revisit if longer labels recur.
+const MERMAID_CONFIG: ClipboardSafeStreamdownProps["mermaidConfig"] = {
+  xyChart: { width: 900, height: 600 },
+};

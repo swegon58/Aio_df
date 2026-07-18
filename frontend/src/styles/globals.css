@@ -1041,3 +1041,15 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
 }
+
+/* streamdown's mermaid-block wrapper ships without overflow-x-auto (unlike
+   its own code-block wrapper), so wide-rendered SVGs (e.g. xychart-beta with
+   long labels) get clipped by the message bubble's overflow-hidden instead
+   of scrolling. */
+[data-streamdown="mermaid-block"] {
+  overflow-x: auto;
+}
+
+[data-streamdown="mermaid-block"] svg {
+  max-width: none;
+}

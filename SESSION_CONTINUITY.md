@@ -105,9 +105,26 @@ items 2-5 now proceed continuously, see update note above.
   `/workspace/chats/new` — dialog stays hidden; (4) "Skip" path — clears flag,
   reopens dialog, clicking Skip closes it, sets the flag, sends no message.
 
-- **Secondary open question, still unanswered**: whether to fix the
-  mermaid `bar`-chart rendering bug now or defer — posed to owner earlier
-  in a prior turn, no response yet. Surface again if it comes up.
+- **Mermaid xychart-beta clipping bug — DONE, `[live-verified]`.** Owner
+  said "Làm luôn đi" (fix now, don't defer). Root cause: mermaid's
+  `xyChart` defaults to a 700x500 internal SVG canvas; 3+ long category
+  labels + wide value range push bars/labels past that canvas, and SVG
+  clips its own overflow by default (NOT a CSS container-overflow issue —
+  verified via `getComputedStyle` that `blockScrollWidth === blockClientWidth`,
+  zero actual container overflow). Fix: `mermaidConfig={{ xyChart: { width:
+  900, height: 600 } }}` passed to `SafeMessageResponse` in
+  `frontend/src/components/workspace/messages/markdown-content.tsx` (a
+  typed prop threaded from the `streamdown`/`mermaid` npm packages via
+  React Context — no node_modules patch). Applied only at this one call
+  site (chat messages), not the other Streamdown usages in the repo, per
+  ponytail/minimal-diff. Also added defensive CSS in
+  `frontend/src/styles/globals.css` (`[data-streamdown="mermaid-block"]
+  { overflow-x: auto }` + `svg { max-width: none }`) in case a genuinely
+  wider chart does overflow its container in the future — harmless,
+  doesn't fix this bug alone. Live-verified with an adversarial prompt
+  (long labels incl. one negative value "Customer Acquisition Cost" -50):
+  "Net Promoter Score" bar/label fully visible, no clipping; chart title
+  no longer overlaps the tallest bar. `tsc --noEmit` clean both edits.
 
 ## Post-item-5 redesign (2026-07-18, grill-me'd, `[live-verified]`)
 
