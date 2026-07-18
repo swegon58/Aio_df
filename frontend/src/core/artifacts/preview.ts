@@ -90,6 +90,23 @@ export function buildWriteFileDraftContent({
     return undefined;
   }
 
+  // Only reconstruct a draft when the URL's own tool call is a write_file
+  // call. Otherwise (e.g. the URL points at a str_replace edit) this would
+  // fall through to some other write_file call's pre-edit content for the
+  // same path, hiding later edits behind stale draft text — the caller
+  // must fetch the real file instead.
+  const targetIsWriteFile = messages.some(
+    (message) =>
+      message.type === "ai" &&
+      (message.tool_calls ?? []).some(
+        (toolCall) =>
+          toolCall.id === target.toolCallId && toolCall.name === "write_file",
+      ),
+  );
+  if (!targetIsWriteFile) {
+    return undefined;
+  }
+
   let draft = "";
   let hasDraft = false;
 

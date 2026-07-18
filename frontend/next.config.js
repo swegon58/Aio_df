@@ -21,6 +21,13 @@ const config = {
     defaultLocale: "en",
   },
   devIndicators: false,
+  // Turbopack's on-disk dev cache corrupts under this dev server's restart
+  // pattern (saw a fatal SST-file panic 2026-07-18) and its background
+  // compaction keeps memory/swap climbing. Off trades a bit of rebuild
+  // speed for a bounded, crash-free footprint.
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
   allowedDevOrigins: ["192.168.1.5", "*.trycloudflare.com"],
   async rewrites() {
     const rewrites = [];

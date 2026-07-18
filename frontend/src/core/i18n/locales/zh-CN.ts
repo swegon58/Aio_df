@@ -107,10 +107,10 @@ export const zhCN: Translations = {
     surpriseMe: "小惊喜",
     surpriseMePrompt: "给我一个小惊喜吧",
     followupLoading: "正在生成可能的后续问题...",
-    followupConfirmTitle: "发送建议问题？",
-    followupConfirmDescription: "当前输入框已有内容，选择发送方式。",
-    followupConfirmAppend: "追加并发送",
-    followupConfirmReplace: "替换并发送",
+    followupConfirmTitle: "使用建议问题？",
+    followupConfirmDescription: "当前输入框已有内容，选择添加方式。",
+    followupConfirmAppend: "追加",
+    followupConfirmReplace: "替换",
     suggestionPlaceholderRequired: "发送前请先填写建议模板中的占位内容。",
     suggestions: [
       {

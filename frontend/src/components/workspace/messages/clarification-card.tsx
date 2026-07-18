@@ -111,7 +111,7 @@ export function ClarificationCard({
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-2 px-4">
-        {question.options?.map((option) => (
+        {question.options?.slice(0, 3).map((option) => (
           <Button
             key={option}
             className="h-auto justify-start text-wrap"

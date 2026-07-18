@@ -15,6 +15,7 @@ import {
   MESSAGE_LIST_DEFAULT_PADDING_BOTTOM,
 } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
+import { OnboardingDialog } from "@/components/workspace/onboarding-dialog";
 import { TodoList } from "@/components/workspace/todo-list";
 import { Welcome } from "@/components/workspace/welcome";
 import { useI18n } from "@/core/i18n/hooks";
@@ -167,6 +168,7 @@ export default function ChatPage() {
 
   return (
     <ThreadContext.Provider value={{ thread, isMock, submitAnswer }}>
+      <OnboardingDialog isNewThread={isNewThread} />
       <ChatBox threadId={threadId}>
         <div className="relative flex size-full min-h-0 justify-between">
           <main className="flex min-h-0 max-w-full grow flex-col">

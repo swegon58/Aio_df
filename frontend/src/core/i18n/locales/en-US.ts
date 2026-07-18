@@ -111,11 +111,11 @@ export const enUS: Translations = {
     surpriseMe: "Surprise",
     surpriseMePrompt: "Surprise me",
     followupLoading: "Generating follow-up questions...",
-    followupConfirmTitle: "Send suggestion?",
+    followupConfirmTitle: "Use suggestion?",
     followupConfirmDescription:
-      "You already have text in the input. Choose how to send it.",
-    followupConfirmAppend: "Append & send",
-    followupConfirmReplace: "Replace & send",
+      "You already have text in the input. Choose how to add it.",
+    followupConfirmAppend: "Append",
+    followupConfirmReplace: "Replace",
     suggestionPlaceholderRequired:
       "Replace the suggestion placeholder before sending.",
     suggestions: [
