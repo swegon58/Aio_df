@@ -326,6 +326,12 @@ export interface Translations {
       description: string;
       creditsLabel: string;
       creditsPlaceholder: string;
+      energyOf: string;
+      energyRegen: string;
+      energyFull: string;
+      energyFullIn: string;
+      energyReadyIn: string;
+      energyExhausted: string;
       currentPlan: string;
       mostPopular: string;
       perMonth: string;

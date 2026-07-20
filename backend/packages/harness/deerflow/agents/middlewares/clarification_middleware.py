@@ -136,10 +136,7 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
             questions = []
 
         multi = len(questions) > 1
-        return "\n\n".join(
-            self._format_single_question(q, index=i + 1 if multi else None)
-            for i, q in enumerate(questions)
-        )
+        return "\n\n".join(self._format_single_question(q, index=i + 1 if multi else None) for i, q in enumerate(questions))
 
     def _handle_clarification(self, request: ToolCallRequest) -> Command:
         """Handle clarification request and return command to interrupt execution.

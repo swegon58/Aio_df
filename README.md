@@ -629,6 +629,15 @@ Across sessions, Aio builds a persistent memory of your profile, preferences, an
 
 Memory updates skip duplicate fact entries at apply time, so repeated preferences and context do not accumulate endlessly across sessions.
 
+### Usage Limits (Energy & Rate Limiting)
+
+For shared or multi-user deployments, Aio can cap how much each user consumes. Enable `usage_limits` in `config.yaml` to turn on two independent, admin-controlled systems:
+
+- **Energy credits** — every user gets an **Energy** balance (⚡) that drains as they use the agent and **regenerates continuously over time**. When it runs low the workspace shows an amber meter; when it's out, new runs are declined and an in-flight run is asked to wrap up gracefully rather than being cut off mid-answer. Energy is a friendly display unit backed by real token usage — tune `tokens_per_unit`, per-model multipliers, the cap, and the regen rate all from `config.yaml`.
+- **Run rate limiting** — cap how many runs a user may start within a time window (e.g. 10 per 5 minutes, 200 per day).
+
+Both are off by default and fully configured in `config.yaml` (no billing, no external service). Admins are exempt by default, and per-user overrides can be set by email. The current balance is shown in **Settings → Plan & Energy**. See `usage_limits` in [`config.example.yaml`](config.example.yaml) for the full reference.
+
 ## Recommended Models
 
 Aio is model-agnostic — it works with any LLM that implements the OpenAI-compatible API. That said, it performs best with models that support:

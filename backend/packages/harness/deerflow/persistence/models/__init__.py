@@ -24,6 +24,7 @@ from deerflow.persistence.feedback.model import FeedbackRow
 from deerflow.persistence.models.run_event import RunEventRow
 from deerflow.persistence.run.model import RunRow
 from deerflow.persistence.thread_meta.model import ThreadMetaRow
+from deerflow.persistence.usage.model import CreditEventRow, UserCreditRow
 from deerflow.persistence.user.model import UserRow
 
 __all__ = [
@@ -31,9 +32,11 @@ __all__ = [
     "ChannelConversationRow",
     "ChannelCredentialRow",
     "ChannelOAuthStateRow",
+    "CreditEventRow",
     "FeedbackRow",
     "RunEventRow",
     "RunRow",
     "ThreadMetaRow",
+    "UserCreditRow",
     "UserRow",
 ]

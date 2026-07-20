@@ -47,4 +47,9 @@ class RunRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
-    __table_args__ = (Index("ix_runs_thread_status", "thread_id", "status"),)
+    __table_args__ = (
+        Index("ix_runs_thread_status", "thread_id", "status"),
+        # Supports the per-user run rate limiter's windowed COUNT
+        # (WHERE user_id = ? AND created_at >= ?). See deerflow.runtime.usage.
+        Index("ix_runs_user_created", "user_id", "created_at"),
+    )

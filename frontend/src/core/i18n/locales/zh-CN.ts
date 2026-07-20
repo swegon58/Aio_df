@@ -202,8 +202,7 @@ export const zhCN: Translations = {
       "新智能体的名称是 {name}。请先帮我设计它的用途、行为方式和 SOUL.md，再保存它。",
     save: "保存智能体",
     saving: "正在保存智能体...",
-    saveRequested:
-      "已提交保存请求，Aio 正在根据当前对话生成并保存初版智能体。",
+    saveRequested: "已提交保存请求，Aio 正在根据当前对话生成并保存初版智能体。",
     saveHint:
       "你可以在右上角的菜单里随时保存这个智能体，就算目前还只是初稿也可以。",
     saveCommandMessage:
@@ -388,10 +387,16 @@ export const zhCN: Translations = {
       about: "关于",
     },
     plan: {
-      title: "订阅与额度",
+      title: "订阅与能量",
       description: "临时占位定价——计费功能尚未接入。",
-      creditsLabel: "剩余额度",
-      creditsPlaceholder: "用量统计即将上线",
+      creditsLabel: "剩余能量",
+      creditsPlaceholder: "能量统计未启用",
+      energyOf: "/",
+      energyRegen: "每小时恢复 {rate}",
+      energyFull: "已充满",
+      energyFullIn: "{time}后充满",
+      energyReadyIn: "约 {time}后能量足够",
+      energyExhausted: "能量耗尽",
       currentPlan: "当前方案",
       mostPopular: "最受欢迎",
       perMonth: "/月",
