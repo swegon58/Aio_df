@@ -397,6 +397,8 @@ export const zhCN: Translations = {
       energyFullIn: "{time}后充满",
       energyReadyIn: "约 {time}后能量足够",
       energyExhausted: "能量耗尽",
+      energyTitle: "能量",
+      rateWindow: "{minutes} 分钟内已用 {used}/{limit} 次",
       currentPlan: "当前方案",
       mostPopular: "最受欢迎",
       perMonth: "/月",

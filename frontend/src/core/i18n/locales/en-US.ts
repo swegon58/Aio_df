@@ -415,6 +415,8 @@ export const enUS: Translations = {
       energyFullIn: "Full in {time}",
       energyReadyIn: "Enough Energy in ~{time}",
       energyExhausted: "Out of Energy",
+      energyTitle: "Energy",
+      rateWindow: "Used {used}/{limit} runs in {minutes} min",
       currentPlan: "Current plan",
       mostPopular: "Most popular",
       perMonth: "/mo",

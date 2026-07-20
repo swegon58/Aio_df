@@ -332,6 +332,8 @@ export interface Translations {
       energyFullIn: string;
       energyReadyIn: string;
       energyExhausted: string;
+      energyTitle: string;
+      rateWindow: string;
       currentPlan: string;
       mostPopular: string;
       perMonth: string;

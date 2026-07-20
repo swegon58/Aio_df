@@ -1,5 +1,11 @@
 import type { Message } from "@langchain/langgraph-sdk";
-import { BotIcon, Code2Icon, FilesIcon, MonitorIcon, XIcon } from "lucide-react";
+import {
+  BotIcon,
+  Code2Icon,
+  FilesIcon,
+  MonitorIcon,
+  XIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
@@ -14,6 +20,7 @@ import {
   ArtifactFileList,
   useArtifacts,
 } from "../artifacts";
+import { EnergyPanelCard } from "../energy/energy-panel-card";
 import { useThread } from "../messages/context";
 
 // ponytail: take the latest successful `preview` tool call's result (a URL
@@ -172,7 +179,9 @@ export function RightStatusPanel({
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                isRunning ? "bg-primary animate-pulse" : "bg-muted-foreground/50",
+                isRunning
+                  ? "bg-primary animate-pulse"
+                  : "bg-muted-foreground/50",
               )}
             />
             {isRunning ? "Running" : "Idle"}
@@ -180,16 +189,9 @@ export function RightStatusPanel({
         </div>
       </div>
 
-      {/* ponytail: usage stats need a backend endpoint, not built yet */}
-      <p className="text-muted-foreground -mt-2 px-1 text-xs">
-        Usage tracking coming soon
-      </p>
+      <EnergyPanelCard />
 
-      <Tabs
-        value={tab}
-        onValueChange={setTab}
-        className="min-h-0 flex-1 gap-2"
-      >
+      <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1 gap-2">
         <TabsList variant="line" className="shrink-0">
           <TabsTrigger value="code" className="gap-1.5 font-mono">
             <Code2Icon className="size-4" />
