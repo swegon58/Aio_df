@@ -882,3 +882,126 @@ def test_build_run_config_no_request_config():
     config = build_run_config("thread-abc", None, None)
     assert config["configurable"] == {"thread_id": "thread-abc"}
     assert "context" not in config
+
+
+# ---------------------------------------------------------------------------
+# Per-user usage gate in start_run (Energy credits + rate limiting)
+# ---------------------------------------------------------------------------
+
+
+def _fake_request_for_start_run(*, usage_service, user):
+    """Build a minimal fake Request whose app.state satisfies start_run's deps.
+
+    thread_store.check_access returns True so ownership passes and the flow
+    reaches the usage gate. run_manager.create_or_reject raises ConflictError
+    so that, when the gate ADMITS a run, start_run surfaces a 409 — a cheap
+    proof the gate was passed rather than driving the full run launch.
+    """
+    from types import SimpleNamespace
+
+    from deerflow.runtime import ConflictError
+
+    class _ThreadStore:
+        async def check_access(self, thread_id, user_id):
+            return True
+
+        async def get(self, thread_id, *, user_id="__auto__"):
+            return {"user_id": user_id}
+
+    class _RunManager:
+        create_reached = False
+
+        async def create_or_reject(self, *args, **kwargs):
+            _RunManager.create_reached = True
+            raise ConflictError("run already in flight")
+
+    state = SimpleNamespace(
+        stream_bridge=object(),
+        run_manager=_RunManager(),
+        checkpointer=object(),
+        store=None,
+        run_event_store=object(),
+        run_events_config=None,
+        thread_store=_ThreadStore(),
+        usage_service=usage_service,
+    )
+    request = SimpleNamespace(state=SimpleNamespace(user=user), app=SimpleNamespace(state=state), headers={})
+    return request, _RunManager
+
+
+def _run_body():
+    from types import SimpleNamespace
+
+    return SimpleNamespace(context={}, assistant_id=None, on_disconnect="continue", metadata={}, input=None, config=None, multitask_strategy="reject")
+
+
+@pytest.mark.anyio
+async def test_start_run_gate_rejects_with_429(_stub_app_config):
+    """A denied admission raises 429 before any run is created."""
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+
+    from app.gateway.services import start_run
+    from deerflow.runtime.usage.service import AdmissionDecision
+
+    class _DenyingUsage:
+        async def check_admission(self, user_id, *, email=None, system_role="user"):
+            return AdmissionDecision(allowed=False, reason="insufficient_energy", detail={"error": "insufficient_energy", "balance": 0.0}, retry_after_seconds=42)
+
+    user = SimpleNamespace(id="u1", email="u1@x.com", system_role="user")
+    request, run_manager_cls = _fake_request_for_start_run(usage_service=_DenyingUsage(), user=user)
+
+    with pytest.raises(HTTPException) as exc:
+        await start_run(_run_body(), "thread-1", request)
+    assert exc.value.status_code == 429
+    assert exc.value.detail["error"] == "insufficient_energy"
+    assert exc.value.headers["Retry-After"] == "42"
+    assert run_manager_cls.create_reached is False  # never reached the run manager
+
+
+@pytest.mark.anyio
+async def test_start_run_gate_allows_and_proceeds(_stub_app_config):
+    """An allowed admission passes the gate through to create_or_reject."""
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+
+    from app.gateway.services import start_run
+    from deerflow.runtime.usage.service import AdmissionDecision
+
+    class _AllowingUsage:
+        called_with = None
+
+        async def check_admission(self, user_id, *, email=None, system_role="user"):
+            _AllowingUsage.called_with = (user_id, email, system_role)
+            return AdmissionDecision.allow()
+
+    usage = _AllowingUsage()
+    user = SimpleNamespace(id="u1", email="u1@x.com", system_role="user")
+    request, run_manager_cls = _fake_request_for_start_run(usage_service=usage, user=user)
+
+    # Gate admits -> create_or_reject raises ConflictError -> surfaced as 409.
+    with pytest.raises(HTTPException) as exc:
+        await start_run(_run_body(), "thread-1", request)
+    assert exc.value.status_code == 409
+    assert run_manager_cls.create_reached is True
+    assert _AllowingUsage.called_with == ("u1", "u1@x.com", "user")
+
+
+@pytest.mark.anyio
+async def test_start_run_no_usage_service_is_noop(_stub_app_config):
+    """With usage_service=None the gate is skipped entirely."""
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+
+    from app.gateway.services import start_run
+
+    user = SimpleNamespace(id="u1", email="u1@x.com", system_role="user")
+    request, run_manager_cls = _fake_request_for_start_run(usage_service=None, user=user)
+
+    with pytest.raises(HTTPException) as exc:
+        await start_run(_run_body(), "thread-1", request)
+    assert exc.value.status_code == 409  # straight through to create_or_reject
+    assert run_manager_cls.create_reached is True

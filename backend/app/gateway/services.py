@@ -20,7 +20,7 @@ from langchain_core.messages import BaseMessage
 from langchain_core.messages.utils import convert_to_messages
 from langgraph.types import Command
 
-from app.gateway.deps import get_checkpointer, get_run_context, get_run_manager, get_stream_bridge
+from app.gateway.deps import get_checkpointer, get_run_context, get_run_manager, get_stream_bridge, get_usage_service
 from app.gateway.internal_auth import INTERNAL_SYSTEM_ROLE, get_trusted_internal_owner_user_id
 from app.gateway.utils import sanitize_log_param
 from deerflow.config.app_config import get_app_config
@@ -416,6 +416,26 @@ async def start_run(
             allowed = await run_ctx.thread_store.check_access(thread_id, owner_user_id)
         if not allowed:
             raise HTTPException(status_code=404, detail=f"Thread {thread_id} not found")
+
+    # Per-user usage gate (Energy credits + run rate limiting). Runs AFTER the
+    # ownership check so 404 anti-enumeration still wins, and BEFORE any run is
+    # created. The metered identity is the run owner: for internal channel runs
+    # that is the connection owner (owner_user_id, a regular user); for HTTP it
+    # is the authenticated user, whose email/role drive per-user overrides and
+    # admin exemption. check_admission itself no-ops when the feature is
+    # disabled or the user is exempt/unmetered, so this is safe to always call.
+    usage_service = get_usage_service(request)
+    if usage_service is not None:
+        if owner_user_id:
+            metered_user_id, metered_email, metered_role = owner_user_id, None, "user"
+        elif user is not None:
+            metered_user_id, metered_email, metered_role = str(user.id), getattr(user, "email", None), getattr(user, "system_role", "user")
+        else:
+            metered_user_id, metered_email, metered_role = None, None, "user"
+        decision = await usage_service.check_admission(metered_user_id, email=metered_email, system_role=metered_role)
+        if not decision.allowed:
+            headers = {"Retry-After": str(decision.retry_after_seconds)} if decision.retry_after_seconds else None
+            raise HTTPException(status_code=429, detail=decision.detail, headers=headers)
 
     owner_context_token = set_current_user(SimpleNamespace(id=owner_user_id)) if owner_user_id else None
     try:

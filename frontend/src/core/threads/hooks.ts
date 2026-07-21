@@ -24,6 +24,7 @@ import type { LocalSettings } from "../settings";
 import { useUpdateSubtask } from "../tasks/context";
 import type { UploadedFileInfo } from "../uploads";
 import { promptInputFilePartToFile, uploadFiles } from "../uploads";
+import { usageQueryKey } from "../usage/hooks";
 
 import { fetchThreadTokenUsage } from "./api";
 import {
@@ -947,6 +948,11 @@ export function useThreadStream({
           queryKey: threadTokenUsageQueryKey(threadIdRef.current),
         });
       }
+      // A 429 means the Energy gate / rate limiter rejected the run — refresh
+      // the Energy snapshot so the bar reflects the exhausted state.
+      if (getHttpStatus(error) === 429) {
+        void queryClient.invalidateQueries({ queryKey: usageQueryKey() });
+      }
     },
     onFinish(state) {
       listeners.current.onFinish?.(state.values);
@@ -966,6 +972,11 @@ export function useThreadStream({
         void queryClient.invalidateQueries({
           queryKey: threadTokenUsageQueryKey(threadIdRef.current),
         });
+      }
+      // Refresh the Energy snapshot after each run so the bar drains by the
+      // amount this run just settled.
+      if (!isMock) {
+        void queryClient.invalidateQueries({ queryKey: usageQueryKey() });
       }
     },
   });

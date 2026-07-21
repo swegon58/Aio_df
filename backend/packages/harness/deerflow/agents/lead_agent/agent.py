@@ -373,6 +373,15 @@ def build_middlewares(
 
         middlewares.append(TokenBudgetMiddleware.from_config(token_budget_config))
 
+    # CreditBudgetMiddleware — hard-stop a run overrunning the user's remaining
+    # Energy balance (per-user credit stop-loss). Gated by usage_limits.enabled,
+    # credits.enabled, and credits.in_run_enforcement.
+    usage_limits_config = resolved_app_config.usage_limits
+    if usage_limits_config.enabled and usage_limits_config.credits.enabled and usage_limits_config.credits.in_run_enforcement:
+        from deerflow.agents.middlewares.credit_budget_middleware import CreditBudgetMiddleware
+
+        middlewares.append(CreditBudgetMiddleware.from_config(usage_limits_config.credits))
+
     # Inject custom middlewares before ClarificationMiddleware
     if custom_middlewares:
         middlewares.extend(custom_middlewares)

@@ -84,6 +84,9 @@ class RunContext:
     run_events_config: Any | None = field(default=None)
     thread_store: Any | None = field(default=None)
     app_config: AppConfig | None = field(default=None)
+    # Optional per-user Energy credit accounting. When present, the run's
+    # weighted-token cost is settled against the owner's balance on completion.
+    usage_service: Any | None = field(default=None)
 
 
 def _install_runtime_context(config: dict, runtime_context: dict[str, Any]) -> None:
@@ -408,6 +411,18 @@ async def run_agent(
                 await run_manager.update_run_completion(run_id, status=record.status.value, **completion)
             except Exception:
                 logger.warning("Failed to persist run completion for %s (non-fatal)", run_id, exc_info=True)
+
+            # Settle the run's Energy cost against the owner's balance. Best-effort
+            # and idempotent (ledger UNIQUE(run_id)); a failure here must never
+            # break run completion. Admin exemption is a gate-level guarantee — a
+            # settled admin balance is never enforced against, since the gate
+            # always admits admins regardless of balance.
+            if ctx.usage_service is not None:
+                try:
+                    settle_user_id = record.user_id or get_effective_user_id()
+                    await ctx.usage_service.settle_run(settle_user_id, run_id, completion)
+                except Exception:
+                    logger.warning("Failed to settle usage for run %s (non-fatal)", run_id, exc_info=True)
 
         # Sync title from checkpoint to threads_meta.display_name
         if checkpointer is not None and thread_store is not None:

@@ -46,6 +46,16 @@ Configuration priority:
 - `summarization` - Context summarization (enabled, trigger conditions, keep policy)
 - `subagents.enabled` - Master switch for subagent delegation
 - `memory` - Memory system (enabled, storage_path, debounce_seconds, model_name, max_facts, fact_confidence_threshold, injection_enabled, max_injection_tokens)
+- `usage_limits` - Per-user Energy credits + run rate limiting (see below)
+
+### `usage_limits` — per-user Energy credits + rate limiting
+
+Admin-managed via `config.yaml` only (no admin API/UI); hot-reloadable. Two independent systems gated by `usage_limits.enabled`:
+
+- **Energy credits** (`usage_limits.credits`) — a per-user balance that drains with real (weighted) token usage and regenerates continuously. Enforced at three layers: a pre-run gate (`app/gateway/services.py::start_run` → 429), an in-run `CreditBudgetMiddleware` (`deerflow/agents/middlewares/credit_budget_middleware.py`, hard-stops a run overrunning the balance by forcing a graceful final answer), and post-run settlement in the worker's `finally` (`deerflow/runtime/runs/worker.py`).
+- **Rate limiting** (`usage_limits.rate_limit`) — per-user sliding-window run caps evaluated by a `COUNT` over the `runs` table (no extra infrastructure).
+
+"Energy" is a **display unit only**: `energy = weighted_tokens / tokens_per_unit`. Internally the balance is stored in weighted token-equivalents (`user_credits` table), with an append-only `credit_events` ledger whose `UNIQUE(run_id)` partial index makes settlement idempotent. Regeneration is computed lazily (no cron): `balance = min(max, balance + rate × elapsed)`, materialized on each write and previewed on reads. Overrides per user are keyed by email; admins and unauthenticated/`default` users are exempt. Core logic: `deerflow/runtime/usage/` (`conversion.py`, `service.py`) + `deerflow/persistence/usage/`. Read-model: `GET /api/usage` (`app/gateway/routers/usage.py`). Config schema: `deerflow/config/usage_limits_config.py`. Schema/migration: `0003_usage_credits`.
 
 **`extensions_config.json`**:
 - `mcpServers` - Map of server name → config (enabled, type, command, args, env, url, headers, oauth, description)

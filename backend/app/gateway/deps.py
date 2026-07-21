@@ -191,11 +191,19 @@ async def langgraph_runtime(app: FastAPI, startup_config: AppConfig) -> AsyncGen
 
             app.state.run_store = RunRepository(sf)
             app.state.feedback_repo = FeedbackRepository(sf)
+
+            # Per-user Energy credit accounting requires a real DB (balance
+            # rows + ledger). Left None on memory backends, which disables the
+            # whole subsystem gracefully (gate + settlement become no-ops).
+            from deerflow.runtime.usage import UsageService
+
+            app.state.usage_service = UsageService(sf)
         else:
             from deerflow.runtime.runs.store.memory import MemoryRunStore
 
             app.state.run_store = MemoryRunStore()
             app.state.feedback_repo = None
+            app.state.usage_service = None
 
         from deerflow.persistence.thread_meta import make_thread_store
 
@@ -292,7 +300,17 @@ def get_run_context(request: Request) -> RunContext:
         run_events_config=getattr(request.app.state, "run_events_config", None),
         thread_store=get_thread_store(request),
         app_config=get_config(),
+        usage_service=get_usage_service(request),
     )
+
+
+def get_usage_service(request: Request):
+    """Return the per-user usage service, or ``None`` when unavailable.
+
+    Optional infrastructure: ``None`` on memory backends or before startup
+    wiring completes. Callers must treat ``None`` as "feature disabled".
+    """
+    return getattr(request.app.state, "usage_service", None)
 
 
 # ---------------------------------------------------------------------------

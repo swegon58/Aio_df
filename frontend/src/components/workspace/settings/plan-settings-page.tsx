@@ -3,7 +3,10 @@
 import { CheckIcon } from "lucide-react";
 
 import { useI18n } from "@/core/i18n/hooks";
+import { useUsage } from "@/core/usage/hooks";
 import { cn } from "@/lib/utils";
+
+import { EnergyBar } from "../energy/energy-bar";
 
 import { SettingsSection } from "./settings-section";
 
@@ -14,7 +17,11 @@ const TIERS = [
     key: "free",
     name: "Free",
     price: 0,
-    features: ["Core chat & agents", "Community support", "Limited monthly credits"],
+    features: [
+      "Core chat & agents",
+      "Community support",
+      "Limited monthly credits",
+    ],
     featured: false,
   },
   {
@@ -44,22 +51,38 @@ const TIERS = [
 
 export function PlanSettingsPage() {
   const { t } = useI18n();
+  const { data: usage } = useUsage();
+  const energyOn = usage?.enabled && usage.credits?.enabled;
 
   return (
-    <SettingsSection title={t.settings.plan.title} description={t.settings.plan.description}>
+    <SettingsSection
+      title={t.settings.plan.title}
+      description={t.settings.plan.description}
+    >
       <div className="space-y-6">
-        <div className="bg-muted/50 flex items-center justify-between rounded-lg border px-4 py-3">
-          <span className="text-sm font-medium">{t.settings.plan.creditsLabel}</span>
-          <span className="text-muted-foreground text-sm">
-            {t.settings.plan.creditsPlaceholder}
-          </span>
+        <div className="bg-muted/50 rounded-lg border px-4 py-3">
+          {energyOn && usage?.credits ? (
+            <EnergyBar credits={usage.credits} unitName={usage.unit_name} />
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {t.settings.plan.creditsLabel}
+              </span>
+              <span className="text-muted-foreground text-sm">
+                {t.settings.plan.creditsPlaceholder}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           {TIERS.map((tier) => (
             <div
               key={tier.key}
-              className={cn("pricing-card", tier.featured && "pricing-card--featured")}
+              className={cn(
+                "pricing-card",
+                tier.featured && "pricing-card--featured",
+              )}
             >
               {tier.featured && (
                 <span className="bg-primary text-primary-foreground absolute -top-2.5 right-4 rounded-full px-2 py-0.5 text-[11px] font-semibold">

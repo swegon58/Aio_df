@@ -15,7 +15,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 15
+config_version: 16
 
 # ============================================================================
 # Logging
@@ -46,6 +46,60 @@ token_budget:
   max_output_tokens: null       # Optional separate output-only limit
   warn_threshold: 0.8           # Warn at 80% of the budget
   hard_stop_threshold: 1.0      # Force stop at 100% of the budget
+
+
+# ============================================================================
+# Usage Limits — per-user Energy credits + run rate limiting
+# ============================================================================
+# Admin-managed via THIS FILE ONLY (no admin API/UI). Hot-reloadable: edits
+# apply on the next request without a restart.
+#
+# Two independent systems, both gated by usage_limits.enabled:
+#   1. Energy credits — a per-user balance that drains with real token usage
+#      (weighted) and regenerates continuously over time. When it runs out, new
+#      runs are rejected (HTTP 429) and an in-flight run is asked to wrap up
+#      gracefully rather than being killed mid-sentence.
+#   2. Rate limiting  — a per-user cap on how many runs may start within a
+#      sliding time window (COUNT over the runs table; no extra infrastructure).
+#
+# "Energy" is a DISPLAY unit only: energy = weighted_tokens / tokens_per_unit.
+# Changing tokens_per_unit rescales the numbers users see; it never mutates any
+# stored token balance. All the numeric credit limits below are in Energy units.
+usage_limits:
+  enabled: false                # Master switch for the whole subsystem
+  exempt_admins: true           # system_role=admin users bypass both systems
+
+  credits:
+    enabled: true               # Effective only when usage_limits.enabled is true
+    unit_name: "Energy"         # Display-only label for the usage unit
+    tokens_per_unit: 1000       # 1 Energy == 1000 weighted tokens (display conversion)
+    input_weight: 1.0           # Weight applied to input tokens
+    output_weight: 4.0          # Output tokens usually cost several times more than input
+    model_multipliers: {}       # Per-model cost, e.g. { gpt-5: 3.0, qwen3-local: 0.0 }
+    default_multiplier: 1.0     # Applied to models not listed in model_multipliers
+    max_balance: 500            # Energy cap (regeneration is capped here)
+    initial_balance: 500        # Energy granted to a first-seen user (<= max_balance)
+    regen_per_hour: 25          # Continuous Energy regen per hour; use max_balance/24 for a daily feel
+    min_start_balance: 0        # Reject a run start when effective balance <= this
+    in_run_enforcement: true    # Hard-stop a run that overruns the remaining balance
+    warn_threshold: 0.8         # Warn the agent in-context at 80% of the per-run budget
+    overdraft_allowance: 20     # Energy a run may overshoot before the in-run hard stop
+    # NOTE: lowering max_balance below a user's current balance clamps it on the
+    # next balance update; a balance may go slightly negative (overdraft) and is
+    # repaid by regeneration before new runs are allowed again.
+
+  rate_limit:
+    enabled: true               # Effective only when usage_limits.enabled is true
+    windows:                    # ALL windows must pass for a run to start
+      - { seconds: 300,   max_runs: 10 }    # burst: 10 runs / 5 minutes
+      - { seconds: 86400, max_runs: 200 }   # daily: 200 runs / 24 hours
+
+  user_overrides: {}            # Per-user overrides keyed by email, e.g.:
+    # "power@example.com":
+    #   exempt: false
+    #   max_balance: 2000
+    #   regen_per_hour: 100
+    #   rate_limit_windows: [{ seconds: 300, max_runs: 30 }]
 
 
 # ============================================================================
