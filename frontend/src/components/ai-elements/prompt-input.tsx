@@ -852,7 +852,7 @@ export const PromptInput = ({
         ref={formRef}
         {...props}
       >
-        <InputGroup className="flex-wrap rounded-[28px] border-border/80 bg-input/95 shadow-md backdrop-blur-none has-[[data-slot=input-group-control]:focus-visible]:border-primary/60 has-[[data-slot=input-group-control]:focus-visible]:ring-primary/20">
+        <InputGroup className="composer-gradient-border flex-wrap rounded-[28px] shadow-md backdrop-blur-none has-[[data-slot=input-group-control]:focus-visible]:ring-primary/20">
           {children}
         </InputGroup>
       </form>

@@ -108,7 +108,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       onOpenChange={(open) => props.onOpenChange?.(open)}
     >
       <DialogContent
-        className="flex h-[75vh] max-h-[calc(100vh-2rem)] flex-col sm:max-w-5xl md:max-w-6xl"
+        className="settings-liger-shell flex h-[75vh] max-h-[calc(100vh-2rem)] flex-col rounded-[28px] sm:max-w-5xl md:max-w-6xl"
         aria-describedby={undefined}
       >
         <DialogHeader className="gap-1">
@@ -128,9 +128,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
                       type="button"
                       onClick={() => setActiveSection(id as SettingsSection)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "settings-liger-nav-item flex w-full items-center gap-3 px-3 py-2 text-sm font-medium",
                         active
-                          ? "bg-primary text-primary-foreground shadow-sm"
+                          ? "settings-liger-nav-item--active text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >

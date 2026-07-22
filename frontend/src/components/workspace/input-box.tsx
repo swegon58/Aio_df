@@ -3,14 +3,14 @@
 import type { ChatStatus } from "ai";
 import {
   CheckIcon,
-  GraduationCapIcon,
+  CircuitBoardIcon,
+  FeatherIcon,
   LightbulbIcon,
   PaperclipIcon,
   PlusIcon,
   SparklesIcon,
   RocketIcon,
   XIcon,
-  ZapIcon,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -82,6 +82,21 @@ import { ModeHoverGuide } from "./mode-hover-guide";
 import { Tooltip } from "./tooltip";
 
 type InputMode = "flash" | "thinking" | "pro" | "ultra";
+
+// Ultra temporarily hidden from the mode menu; keep the type/logic intact
+// so it can be re-enabled by flipping this flag.
+const SHOW_ULTRA_MODE = false;
+
+// Reasoning mode hidden from the mode menu (only 2 visible tiers: Lite/Pro);
+// keep the type/logic intact so it can be re-enabled by flipping this flag.
+const SHOW_REASONING_MODE = false;
+
+// Binds a picked mode to a specific configured backend model (config.yaml
+// model `name`). Modes without an entry keep whatever model is already set.
+const MODE_MODEL_NAME: Partial<Record<InputMode, string>> = {
+  flash: "qwen3.5-9b-uncensored-local",
+  pro: "glm-4.6",
+};
 
 const MAX_SKILL_SUGGESTIONS = 6;
 const SUGGESTION_TEMPLATE_PLACEHOLDER_PATTERN =
@@ -310,9 +325,17 @@ export function InputBox({
 
   const handleModeSelect = useCallback(
     (mode: InputMode) => {
+      const mappedModelName = MODE_MODEL_NAME[mode];
+      const mappedModel = mappedModelName
+        ? models.find((m) => m.name === mappedModelName)
+        : undefined;
+      const nextSupportsThinking =
+        mappedModel?.supports_thinking ?? supportThinking;
+
       onContextChange?.({
         ...context,
-        mode: getResolvedMode(mode, supportThinking),
+        ...(mappedModel ? { model_name: mappedModel.name } : {}),
+        mode: getResolvedMode(mode, nextSupportsThinking),
         reasoning_effort:
           mode === "ultra"
             ? "high"
@@ -323,7 +346,7 @@ export function InputBox({
                 : "minimal",
       });
     },
-    [onContextChange, context, supportThinking],
+    [onContextChange, context, supportThinking, models],
   );
 
   const handleReasoningEffortSelect = useCallback(
@@ -877,12 +900,14 @@ export function InputBox({
               >
                 <PromptInputActionMenuTrigger className="max-w-28 gap-1! px-2! sm:max-w-none">
                   <div>
-                    {context.mode === "flash" && <ZapIcon className="size-3" />}
+                    {context.mode === "flash" && (
+                      <FeatherIcon className="size-3" />
+                    )}
                     {context.mode === "thinking" && (
                       <LightbulbIcon className="size-3" />
                     )}
                     {context.mode === "pro" && (
-                      <GraduationCapIcon className="size-3" />
+                      <CircuitBoardIcon className="size-3" />
                     )}
                     {context.mode === "ultra" && (
                       <RocketIcon className="size-3 text-[#dabb5e]" />
@@ -919,7 +944,7 @@ export function InputBox({
                     >
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-1 font-bold">
-                          <ZapIcon
+                          <FeatherIcon
                             className={cn(
                               "mr-2 size-4",
                               context.mode === "flash" &&
@@ -938,7 +963,7 @@ export function InputBox({
                         <div className="ml-auto size-4" />
                       )}
                     </PromptInputActionMenuItem>
-                    {supportThinking && (
+                    {SHOW_REASONING_MODE && supportThinking && (
                       <PromptInputActionMenuItem
                         className={cn(
                           "items-start",
@@ -981,7 +1006,7 @@ export function InputBox({
                     >
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-1 font-bold">
-                          <GraduationCapIcon
+                          <CircuitBoardIcon
                             className={cn(
                               "mr-2 size-4",
                               context.mode === "pro" &&
@@ -1000,41 +1025,43 @@ export function InputBox({
                         <div className="ml-auto size-4" />
                       )}
                     </PromptInputActionMenuItem>
-                    <PromptInputActionMenuItem
-                      className={cn(
-                        "items-start",
-                        context.mode === "ultra"
-                          ? "text-accent-foreground"
-                          : "text-muted-foreground/65",
-                      )}
-                      onSelect={() => handleModeSelect("ultra")}
-                    >
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-1 font-bold">
-                          <RocketIcon
-                            className={cn(
-                              "mr-2 size-4",
-                              context.mode === "ultra" && "text-[#dabb5e]",
-                            )}
-                          />
-                          <div
-                            className={cn(
-                              context.mode === "ultra" && "golden-text",
-                            )}
-                          >
-                            {t.inputBox.ultraMode}
+                    {SHOW_ULTRA_MODE && (
+                      <PromptInputActionMenuItem
+                        className={cn(
+                          "items-start",
+                          context.mode === "ultra"
+                            ? "text-accent-foreground"
+                            : "text-muted-foreground/65",
+                        )}
+                        onSelect={() => handleModeSelect("ultra")}
+                      >
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-1 font-bold">
+                            <RocketIcon
+                              className={cn(
+                                "mr-2 size-4",
+                                context.mode === "ultra" && "text-[#dabb5e]",
+                              )}
+                            />
+                            <div
+                              className={cn(
+                                context.mode === "ultra" && "golden-text",
+                              )}
+                            >
+                              {t.inputBox.ultraMode}
+                            </div>
+                          </div>
+                          <div className="pl-7 text-xs">
+                            {t.inputBox.ultraModeDescription}
                           </div>
                         </div>
-                        <div className="pl-7 text-xs">
-                          {t.inputBox.ultraModeDescription}
-                        </div>
-                      </div>
-                      {context.mode === "ultra" ? (
-                        <CheckIcon className="ml-auto size-4" />
-                      ) : (
-                        <div className="ml-auto size-4" />
-                      )}
-                    </PromptInputActionMenuItem>
+                        {context.mode === "ultra" ? (
+                          <CheckIcon className="ml-auto size-4" />
+                        ) : (
+                          <div className="ml-auto size-4" />
+                        )}
+                      </PromptInputActionMenuItem>
+                    )}
                   </PromptInputActionMenu>
                 </DropdownMenuGroup>
               </PromptInputActionMenuContent>

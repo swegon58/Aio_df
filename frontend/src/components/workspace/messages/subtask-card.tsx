@@ -53,7 +53,10 @@ export function SubtaskCard({
   }, [task.status]);
   return (
     <ChainOfThought
-      className={cn("relative w-full gap-2 rounded-lg border py-0", className)}
+      className={cn(
+        "relative w-full gap-2 rounded-lg border border-primary/25 py-0",
+        className,
+      )}
       open={!collapsed}
     >
       <div

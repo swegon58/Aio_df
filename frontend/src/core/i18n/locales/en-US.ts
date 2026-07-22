@@ -85,14 +85,13 @@ export const enUS: Translations = {
       "We're going to build a new skill step by step with `skill-creator`. To start, what do you want this skill to do?",
     addAttachments: "Add attachments",
     mode: "Mode",
-    flashMode: "Flash",
-    flashModeDescription: "Fast and efficient, but may not be accurate",
+    flashMode: "Aio Lite",
+    flashModeDescription: "Fast, lightweight answers for everyday questions",
     reasoningMode: "Reasoning",
     reasoningModeDescription:
       "Reasoning before action, balance between time and accuracy",
-    proMode: "Pro",
-    proModeDescription:
-      "Reasoning, planning and executing, get more accurate results, may take more time",
+    proMode: "Aio Pro",
+    proModeDescription: "Deeper reasoning for complex, high-stakes questions",
     ultraMode: "Ultra",
     ultraModeDescription:
       "Pro mode with subagents to divide work; best for complex multi-step tasks",

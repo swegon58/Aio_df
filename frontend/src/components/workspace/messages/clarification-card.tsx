@@ -88,7 +88,7 @@ export function ClarificationCard({
   };
 
   return (
-    <Card className="w-full max-w-(--container-width-md) gap-3 py-4">
+    <Card className="w-full max-w-(--container-width-md) gap-3 border-primary/25 py-4">
       <CardHeader className="gap-1 px-4">
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="flex items-center gap-2">

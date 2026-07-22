@@ -1,7 +1,10 @@
+import { PanelRightOpenIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GroupImperativeHandle } from "react-resizable-panels";
+import { usePanelRef } from "react-resizable-panels";
 
+import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -95,6 +98,19 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     return pathname.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
   }, [pathname]);
 
+  const rightPanelRef = usePanelRef();
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+
+  const collapseRightPanel = useCallback(() => {
+    rightPanelRef.current?.collapse();
+    setRightCollapsed(true);
+  }, [rightPanelRef]);
+
+  const expandRightPanel = useCallback(() => {
+    rightPanelRef.current?.expand();
+    setRightCollapsed(false);
+  }, [rightPanelRef]);
+
   useEffect(() => {
     if (layoutRef.current) {
       if (isMobile) {
@@ -108,34 +124,52 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   }, [artifactPanelOpen, isMobile]);
 
   return (
-    <ResizablePanelGroup
-      id={`${resizableIdBase}-panels`}
-      orientation="horizontal"
-      defaultLayout={CLOSE_MODE_WITH_STATUS}
-      groupRef={layoutRef}
-    >
-      <ResizablePanel className="relative" defaultSize={100} id="chat">
-        {children}
-      </ResizablePanel>
-      <ResizableHandle
-        id={`${resizableIdBase}-separator`}
-        className={cn(
-          "opacity-33 hover:opacity-100",
-          isMobile && !artifactPanelOpen && "pointer-events-none opacity-0",
-        )}
-      />
-      <ResizablePanel
-        className="border-border/60 border-l"
-        defaultSize={30}
-        minSize={artifactPanelOpen ? 20 : 0}
-        id="right"
+    <div className="relative size-full">
+      <ResizablePanelGroup
+        id={`${resizableIdBase}-panels`}
+        orientation="horizontal"
+        defaultLayout={CLOSE_MODE_WITH_STATUS}
+        groupRef={layoutRef}
       >
-        <RightStatusPanel
-          threadId={threadId}
-          artifactPanelOpen={artifactPanelOpen}
+        <ResizablePanel className="relative" defaultSize={100} id="chat">
+          {children}
+        </ResizablePanel>
+        <ResizableHandle
+          id={`${resizableIdBase}-separator`}
+          className={cn(
+            "opacity-33 hover:opacity-100",
+            (rightCollapsed || (isMobile && !artifactPanelOpen)) &&
+              "pointer-events-none opacity-0",
+          )}
         />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+        <ResizablePanel
+          className="border-border/60 border-l"
+          defaultSize={30}
+          minSize={artifactPanelOpen ? 20 : 0}
+          collapsible
+          collapsedSize={0}
+          panelRef={rightPanelRef}
+          id="right"
+        >
+          <RightStatusPanel
+            threadId={threadId}
+            artifactPanelOpen={artifactPanelOpen}
+            onCollapse={collapseRightPanel}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+      {!isMobile && rightCollapsed && (
+        <Button
+          aria-label="Expand right panel"
+          className="absolute top-4 right-4 z-40"
+          onClick={expandRightPanel}
+          size="icon-sm"
+          variant="outline"
+        >
+          <PanelRightOpenIcon />
+        </Button>
+      )}
+    </div>
   );
 };
 

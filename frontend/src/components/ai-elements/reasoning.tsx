@@ -11,7 +11,6 @@ import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { reasoningPlugins } from "@/core/streamdown/plugins";
-import { Shimmer } from "./shimmer";
 import { ClipboardSafeStreamdown } from "./streamdown";
 
 type ReasoningContextValue = {
@@ -134,6 +133,14 @@ export type ReasoningTriggerProps = ComponentProps<
   hasContent?: boolean;
 };
 
+const ThinkingLoader = () => (
+  <span className="thinking-loader" aria-label="Thinking">
+    <span className="thinking-loader-square" />
+    <span className="thinking-loader-square" />
+    <span className="thinking-loader-square" />
+  </span>
+);
+
 const LiveTimer = ({ startTime }: { startTime: number }) => {
   const [elapsed, setElapsed] = useState(0);
 
@@ -150,7 +157,7 @@ const LiveTimer = ({ startTime }: { startTime: number }) => {
 
   return (
     <span className="flex items-center gap-2">
-      <Shimmer duration={1}>Thinking...</Shimmer>
+      <ThinkingLoader />
       <span className="text-muted-foreground/80">({elapsed}s)</span>
     </span>
   );
@@ -165,7 +172,7 @@ const defaultGetThinkingMessage = (
     return <LiveTimer startTime={startTime} />;
   }
   if (isStreaming || duration === 0) {
-    return <Shimmer duration={1}>Thinking...</Shimmer>;
+    return <ThinkingLoader />;
   }
   if (duration === undefined) {
     return <span>Thought for a few seconds</span>;

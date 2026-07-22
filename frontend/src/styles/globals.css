@@ -271,11 +271,11 @@
 }
 
 .dark {
-  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.16));
-  --glass-border: rgba(255, 255, 255, 0.34);
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  --glass-border: rgba(255, 255, 255, 0.10);
   --glass-blur: 52px;
-  --glass-saturate: saturate(180%);
-  --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --glass-saturate: saturate(140%);
+  --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --background: oklch(0.14 0.008 220);
   --foreground: oklch(0.93 0.006 220);
   --card: oklch(0.18 0.009 220);
@@ -557,6 +557,11 @@
   padding: 20px 0;
   overflow: hidden;
   z-index: 110;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-rail:hover {
+  width: 180px;
 }
 
 .icon-rail-main {
@@ -572,7 +577,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 12px;
+  padding: 0 12px 0 18px;
   color: var(--muted-foreground);
   background: none;
   border: none;
@@ -610,6 +615,22 @@
   transition: background-color 150ms ease;
 }
 
+.icon-rail-item--compact .icon-rail-item-highlight {
+  display: inline-grid;
+  grid-template-columns: auto 0fr;
+  column-gap: 0;
+  overflow: hidden;
+  transition:
+    background-color 150ms ease,
+    grid-template-columns 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    column-gap 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-rail:hover .icon-rail-item--compact .icon-rail-item-highlight {
+  grid-template-columns: auto 1fr;
+  column-gap: 14px;
+}
+
 .icon-rail-item.active .icon-rail-item-highlight {
   background: color-mix(in oklch, var(--primary) 12%, transparent);
   color: var(--primary);
@@ -629,10 +650,15 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 150ms ease;
 }
 
-.icon-rail-item--compact .icon-rail-label {
-  display: none;
+.icon-rail:hover .icon-rail-item--compact .icon-rail-label {
+  opacity: 1;
+  transition: opacity 200ms ease 60ms;
 }
 
 .icon-rail-mobile-toggle {
@@ -970,21 +996,28 @@
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 35%, transparent);
 }
 
-/* ===== CHAT SURFACES (glass-blur pass, user bubble + assistant bubble + tool-call chip + file card) ===== */
+/* ===== CHAT SURFACES (glass-blur pass, user bubble + assistant bubble + tool-call chip + file card, theme-tinted borders) ===== */
 .group.is-user .message-bubble {
-  background: var(--glass-bg), var(--secondary);
+  background: var(--glass-bg), color-mix(in oklch, var(--primary) 20%, var(--secondary));
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
+  border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--glass-border));
   box-shadow: var(--glass-shadow);
 }
 
 .group.is-assistant .message-bubble {
-  background: var(--glass-bg), var(--card);
+  background: var(--glass-bg), color-mix(in oklch, var(--primary) 10%, var(--card));
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--glass-border));
   box-shadow: var(--glass-shadow);
+}
+
+.composer-gradient-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--input), var(--input)) padding-box,
+    linear-gradient(135deg, var(--primary), color-mix(in oklch, var(--primary) 40%, transparent)) border-box;
 }
 
 .subtask-card-glass {
@@ -997,7 +1030,7 @@
   background: var(--glass-bg), var(--background);
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
+  border: 1px solid color-mix(in oklch, var(--primary) 25%, var(--glass-border));
 }
 
 /* ===== BACKGROUND DOT-GRID (ported from apps/web DotGrid.tsx, gsap already a
@@ -1052,4 +1085,90 @@ html {
 
 [data-streamdown="mermaid-block"] svg {
   max-width: none;
+}
+
+/* ===== THINKING LOADER (ported from uiverse.io/R5Program/jolly-goat-11,
+   recolored from hardcoded cyan to theme --primary) ===== */
+.thinking-loader {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  height: 16px;
+}
+
+.thinking-loader-square {
+  width: 7px;
+  height: 7px;
+  background-color: var(--primary);
+  border-radius: 2px;
+  box-shadow: 0 0 6px color-mix(in oklch, var(--primary) 70%, transparent);
+  animation: thinking-scale-bounce 1.2s infinite ease-in-out;
+  position: relative;
+}
+
+.thinking-loader-square::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklch, var(--primary) 50%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: thinking-splash 1.2s infinite ease-in-out;
+}
+
+.thinking-loader-square:nth-child(1) {
+  animation-delay: -0.4s;
+}
+
+.thinking-loader-square:nth-child(2) {
+  animation-delay: -0.2s;
+}
+
+.thinking-loader-square:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes thinking-scale-bounce {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.6; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes thinking-splash {
+  0% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0; transform: scale(2); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+
+/* ===== SETTINGS PILOT (shape/shadow language ported from
+   uiverse.io/Smit-Prajapati/swift-liger-76, all colors remapped to theme
+   vars — pilot on the Settings dialog only, not yet rolled out app-wide) ===== */
+.settings-liger-shell {
+  background: linear-gradient(
+    180deg,
+    var(--card) 0%,
+    color-mix(in oklch, var(--primary) 4%, var(--card)) 100%
+  );
+  box-shadow: 0 30px 30px -20px color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+.settings-liger-nav-item {
+  border-radius: 999px;
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.settings-liger-nav-item:hover:not(.settings-liger-nav-item--active) {
+  box-shadow: 0 10px 10px -5px color-mix(in oklch, var(--primary) 15%, transparent);
+}
+
+.settings-liger-nav-item--active {
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    color-mix(in oklch, var(--primary) 70%, transparent)
+  );
+  box-shadow: 0 12px 10px -8px color-mix(in oklch, var(--primary) 45%, transparent);
+}
+
+.settings-liger-nav-item--active:hover {
+  transform: scale(1.02);
 }
