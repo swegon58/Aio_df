@@ -15,7 +15,7 @@ Three-branch decision (see ``_decide_state``)
 
 | DB state                              | Action                                  |
 |---------------------------------------|-----------------------------------------|
-| empty (no DeerFlow tables)            | ``create_all`` + ``alembic stamp head`` |
+| empty (no DeerFlow tables)            | ``create_all`` (+ any DDL-only migration content, e.g. RLS policies) + ``alembic stamp head`` |
 | legacy (DeerFlow tables, no alembic)  | ``create_all`` (baseline tables only, as backfill) + ``stamp 0001_baseline`` + ``upgrade head`` |
 | versioned (``alembic_version`` row)   | ``alembic upgrade head``                |
 
@@ -268,9 +268,23 @@ def _decide_state(state: dict[str, bool]) -> str:
 
 
 def _run_create_all_sync(sync_conn: Any) -> None:
-    """Create all DeerFlow-owned tables on *sync_conn*."""
+    """Create all DeerFlow-owned tables on *sync_conn*, then apply any DDL-only
+    migration content that ``create_all`` can't express because it has no
+    ``Base.metadata``/ORM representation (currently just RLS policies from
+    ``0004_rls_policies``).
+
+    This second step exists because the empty branch stamps straight to head
+    without ever running ``alembic upgrade`` (see module docstring) -- so a
+    migration whose *entire* body is imperative ``op.execute`` DDL would
+    otherwise silently never run on a fresh database, which is exactly the
+    deployment path (a brand-new Supabase project) RLS is meant to protect.
+    ``apply_rls_policies`` is the same function ``0004_rls_policies.upgrade()``
+    calls, so legacy/versioned DBs (which do run upgrade) and fresh DBs end up
+    with identical policies from one source of truth.
+    """
     # Import here to ensure all model classes are registered with Base.metadata.
     from deerflow.persistence.base import Base
+    from deerflow.persistence.rls import apply_rls_policies
 
     try:
         import deerflow.persistence.models  # noqa: F401
@@ -278,6 +292,7 @@ def _run_create_all_sync(sync_conn: Any) -> None:
         logger.debug("deerflow.persistence.models not found; bootstrap will create empty schema")
 
     Base.metadata.create_all(sync_conn)
+    apply_rls_policies(sync_conn)
 
 
 def _run_baseline_create_all_sync(sync_conn: Any) -> None:

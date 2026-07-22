@@ -107,24 +107,70 @@ in `engine.py`), so skip Supabase's pooler — connect via port 5432
 
 **Checklist (ranked, prevents-a-leak first):**
 1. Connect via Supabase port 5432 (direct/session-mode), not 6543
-   (transaction pooler) — do this regardless of RLS.
+   (transaction pooler) — do this regardless of RLS. **[owner, pending —
+   needs the real Supabase project from step 1 above]**
 2. `ALTER TABLE ... FORCE ROW LEVEL SECURITY` (not just `ENABLE`) on every
    user table — otherwise the app's own DB role, as table owner, bypasses
-   RLS by default.
-3. Add `USING (user_id = current_setting('app.current_user_id', true))`
-   policies to: `users`, `threads_meta`, `runs`, `run_events`, `feedback`,
-   `channel_connections`, `channel_oauth_states`,
-   `channel_conversations` — verify `channel_credentials`'s owner column
-   first.
-4. Wire `SET LOCAL app.current_user_id = :uid` at transaction start
-   (FastAPI dependency, first statement, bound param).
-5. LangGraph checkpoint tables have no `user_id` — either add a
-   join-based policy against `threads_meta`, or explicitly accept/document
-   this as an app-level-only gap (thread ownership is already checked
-   before any checkpoint read).
-6. DB-layer isolation test: two real rows under different `user_id`s,
-   adversarial SELECT with the *other* user's session var set, assert
-   zero rows — belongs in CI/migration tests, not a one-time manual check.
+   RLS by default. **[done, live-verified]** — migration
+   `0004_rls_policies.py`, logic factored into
+   `persistence/rls.py::apply_rls_policies` (single source of truth, also
+   called directly by `bootstrap.py`'s empty-DB branch — see finding below).
+3. Add `USING (...)` bypass-flag policies (own design, see below) to:
+   `users`, `threads_meta`, `runs`, `run_events`, `feedback`,
+   `channel_connections`, `channel_oauth_states`, `channel_conversations`,
+   plus `user_credits`/`credit_events` (added since this doc was written,
+   R18 usage-limits tables) and `channel_credentials` (no owner column of
+   its own — join to `channel_connections.owner_user_id`). **[done,
+   live-verified against Docker Postgres]**. Policy design deviates from
+   this doc's plain `user_id = current_setting(...)`: uses a bypass flag
+   (`app.rls_bypass`) so system/admin/scheduler paths that call
+   `resolve_user_id()` with its explicit-`None` "no filter" state (e.g. the
+   run scheduler's `list_pending`/`list_inflight`) aren't broken by RLS —
+   mirrors the app-level three-state contract instead of being a blunt
+   per-row filter.
+4. Wire `set_config('app.current_user_id', :uid, true)` (not `SET LOCAL`
+   directly — Postgres doesn't accept bind params there) as the first
+   statement of every session that touches a user-scoped table. **[done for
+   `run/sql.py` — reference implementation, live-verified. Remaining
+   repos — `channel_connections/sql.py`, `feedback/sql.py`,
+   `thread_meta/sql.py`, `usage/sql.py`,
+   `runtime/events/store/db.py` — not yet wired, same pattern applies.]**
+   This codebase opens a new session per repository call (no shared
+   per-request session), so wiring is per-call via
+   `persistence/rls.py::apply_rls_context(session, resolved_user_id)`, not a
+   single FastAPI dependency as this doc originally assumed.
+5. LangGraph checkpoint tables have no `user_id` — **accepted as a
+   documented app-level-only gap** (see migration 0004's docstring); thread
+   ownership is already checked before any checkpoint read.
+6. DB-layer isolation test — **[done, live-verified]**:
+   `backend/tests/test_rls_isolation.py`, gated on
+   `AIO_DF_TEST_POSTGRES_URL` (skipped by default, no Postgres in normal
+   dev/CI). Confirms a query with **no WHERE clause at all** still returns
+   only the scoped user's row, and the bypass flag still sees both.
+   **Caveat discovered while writing this test:** the connecting Postgres
+   role must not be a superuser / have `BYPASSRLS`, or RLS silently does
+   nothing — even `FORCE ROW LEVEL SECURITY` doesn't bind superusers. A
+   default Docker `postgres` role IS a superuser, so testing against one
+   gives a loud, safe test failure (not a false pass). Supabase's own
+   default `postgres` role is documented as non-superuser/no-BYPASSRLS, but
+   **this needs a one-time confirmation query once the real Supabase
+   project exists**: `SELECT rolsuper, rolbypassrls FROM pg_roles WHERE
+   rolname = current_user` — if that ever comes back true, every policy in
+   this migration is a no-op with no error to signal it.
 7. Fix `run/sql.py:139,184`'s fetch-then-compare pattern to a WHERE-clause
-   filter — RLS is the backstop, the app-level check shouldn't be the
-   kind that's easy to omit in new code.
+   filter — **[done, already landed]**, see prior session.
+
+**New finding (2026-07-22), not anticipated by this doc originally:** this
+repo's bootstrap (`persistence/bootstrap.py`) has a hybrid
+create_all/alembic strategy where a **fresh** database (`empty` branch —
+exactly what step 1 of this plan will produce) does `create_all` + `alembic
+stamp head` and **never runs `alembic upgrade`** — so a migration whose
+entire body is imperative DDL with no `Base.metadata`/ORM representation
+(RLS policies have none) would silently never execute on a brand-new
+database. Fixed by having `_run_create_all_sync` call
+`apply_rls_policies(sync_conn)` directly right after `create_all`, using the
+same function `0004_rls_policies.upgrade()` calls — one source of truth, no
+alembic branch-logic changes. Live-verified: dropped/recreated a fresh
+Docker Postgres DB, ran `init_engine`, confirmed all 11 tables show
+`relrowsecurity`/`relforcerowsecurity = true` and 11 policies exist in
+`pg_policies` with zero manual intervention.

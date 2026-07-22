@@ -14,6 +14,7 @@ from typing import Any
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from deerflow.persistence.rls import apply_rls_context
 from deerflow.persistence.run.model import RunRow
 from deerflow.runtime.runs.store.base import RunStore
 from deerflow.runtime.user_context import AUTO, _AutoSentinel, resolve_user_id
@@ -117,6 +118,7 @@ class RunRepository(RunStore):
             "updated_at": now,
         }
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             row = await session.get(RunRow, run_id)
             if row is None:
                 session.add(RunRow(run_id=run_id, created_at=created, **values))
@@ -132,11 +134,13 @@ class RunRepository(RunStore):
         user_id: str | None | _AutoSentinel = AUTO,
     ):
         resolved_user_id = resolve_user_id(user_id, method_name="RunRepository.get")
+        stmt = select(RunRow).where(RunRow.run_id == run_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(RunRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            row = await session.get(RunRow, run_id)
+            await apply_rls_context(session, resolved_user_id)
+            row = (await session.execute(stmt)).scalar_one_or_none()
             if row is None:
-                return None
-            if resolved_user_id is not None and row.user_id != resolved_user_id:
                 return None
             return self._row_to_dict(row)
 
@@ -153,20 +157,24 @@ class RunRepository(RunStore):
             stmt = stmt.where(RunRow.user_id == resolved_user_id)
         stmt = stmt.order_by(RunRow.created_at.desc()).limit(limit)
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             result = await session.execute(stmt)
             return [self._row_to_dict(r) for r in result.scalars()]
 
     async def update_status(self, run_id, status, *, error=None) -> bool:
+        """Called by the run scheduler with a run_id already validated upstream -- not user-scoped."""
         values: dict[str, Any] = {"status": status, "updated_at": datetime.now(UTC)}
         if error is not None:
             values["error"] = error
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             result = await session.execute(update(RunRow).where(RunRow.run_id == run_id).values(**values))
             await session.commit()
             return result.rowcount != 0
 
     async def update_model_name(self, run_id, model_name):
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             await session.execute(update(RunRow).where(RunRow.run_id == run_id).values(model_name=self._normalize_model_name(model_name), updated_at=datetime.now(UTC)))
             await session.commit()
 
@@ -177,16 +185,19 @@ class RunRepository(RunStore):
         user_id: str | None | _AutoSentinel = AUTO,
     ):
         resolved_user_id = resolve_user_id(user_id, method_name="RunRepository.delete")
+        stmt = select(RunRow).where(RunRow.run_id == run_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(RunRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            row = await session.get(RunRow, run_id)
+            await apply_rls_context(session, resolved_user_id)
+            row = (await session.execute(stmt)).scalar_one_or_none()
             if row is None:
-                return
-            if resolved_user_id is not None and row.user_id != resolved_user_id:
                 return
             await session.delete(row)
             await session.commit()
 
     async def list_pending(self, *, before=None):
+        """Run scheduler startup scan -- iterates across all users by design."""
         if before is None:
             before_dt = datetime.now(UTC)
         elif isinstance(before, datetime):
@@ -195,11 +206,12 @@ class RunRepository(RunStore):
             before_dt = datetime.fromisoformat(before)
         stmt = select(RunRow).where(RunRow.status == "pending", RunRow.created_at <= before_dt).order_by(RunRow.created_at.asc())
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             result = await session.execute(stmt)
             return [self._row_to_dict(r) for r in result.scalars()]
 
     async def list_inflight(self, *, before=None):
-        """Return persisted active runs for startup recovery."""
+        """Return persisted active runs for startup recovery (all users, by design)."""
         if before is None:
             before_dt = datetime.now(UTC)
         elif isinstance(before, datetime):
@@ -215,6 +227,7 @@ class RunRepository(RunStore):
             .order_by(RunRow.created_at.asc())
         )
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             result = await session.execute(stmt)
             return [self._row_to_dict(r) for r in result.scalars()]
 
@@ -260,6 +273,7 @@ class RunRepository(RunStore):
         if error is not None:
             values["error"] = error
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             result = await session.execute(update(RunRow).where(RunRow.run_id == run_id).values(**values))
             await session.commit()
             return result.rowcount != 0
@@ -302,6 +316,7 @@ class RunRepository(RunStore):
         if first_human_message is not None:
             values["first_human_message"] = first_human_message[:2000]
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             await session.execute(update(RunRow).where(RunRow.run_id == run_id, RunRow.status == "running").values(**values))
             await session.commit()
 
@@ -335,6 +350,7 @@ class RunRepository(RunStore):
         ).where(_thread, _completed)
 
         async with self._sf() as session:
+            await apply_rls_context(session, None)
             rows = (await session.execute(stmt)).all()
 
         total_tokens = total_input = total_output = total_runs = 0

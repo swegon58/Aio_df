@@ -6,10 +6,11 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from deerflow.persistence.json_compat import json_match
+from deerflow.persistence.rls import apply_rls_context
 from deerflow.persistence.thread_meta.base import InvalidMetadataFilterError, ThreadMetaStore
 from deerflow.persistence.thread_meta.model import ThreadMetaRow
 from deerflow.runtime.user_context import AUTO, _AutoSentinel, resolve_user_id
@@ -57,6 +58,7 @@ class ThreadMetaRepository(ThreadMetaStore):
             updated_at=now,
         )
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             session.add(row)
             await session.commit()
             await session.refresh(row)
@@ -69,12 +71,13 @@ class ThreadMetaRepository(ThreadMetaStore):
         user_id: str | None | _AutoSentinel = AUTO,
     ) -> dict | None:
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.get")
+        stmt = select(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(ThreadMetaRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            row = await session.get(ThreadMetaRow, thread_id)
+            await apply_rls_context(session, resolved_user_id)
+            row = (await session.execute(stmt)).scalar_one_or_none()
             if row is None:
-                return None
-            # Enforce owner filter unless explicitly bypassed (user_id=None).
-            if resolved_user_id is not None and row.user_id != resolved_user_id:
                 return None
             return self._row_to_dict(row)
 
@@ -101,6 +104,10 @@ class ThreadMetaRepository(ThreadMetaStore):
           made every other user appear to "own" it.
         """
         async with self._sf() as session:
+            # Bypass: NULL-owner rows are "shared/pre-auth" and must stay
+            # visible here for the Python-side authorization check below --
+            # a scoped RLS context would silently filter them out.
+            await apply_rls_context(session, None)
             row = await session.get(ThreadMetaRow, thread_id)
             if row is None:
                 return not require_existing
@@ -146,15 +153,9 @@ class ThreadMetaRepository(ThreadMetaStore):
 
         stmt = stmt.limit(limit).offset(offset)
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             result = await session.execute(stmt)
             return [self._row_to_dict(r) for r in result.scalars()]
-
-    async def _check_ownership(self, session: AsyncSession, thread_id: str, resolved_user_id: str | None) -> bool:
-        """Return True if the row exists and is owned (or filter bypassed)."""
-        if resolved_user_id is None:
-            return True  # explicit bypass
-        row = await session.get(ThreadMetaRow, thread_id)
-        return row is not None and row.user_id == resolved_user_id
 
     async def update_display_name(
         self,
@@ -165,10 +166,12 @@ class ThreadMetaRepository(ThreadMetaStore):
     ) -> None:
         """Update the display_name (title) for a thread."""
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.update_display_name")
+        stmt = update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(ThreadMetaRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            if not await self._check_ownership(session, thread_id, resolved_user_id):
-                return
-            await session.execute(update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id).values(display_name=display_name, updated_at=datetime.now(UTC)))
+            await apply_rls_context(session, resolved_user_id)
+            await session.execute(stmt.values(display_name=display_name, updated_at=datetime.now(UTC)))
             await session.commit()
 
     async def update_status(
@@ -179,10 +182,12 @@ class ThreadMetaRepository(ThreadMetaStore):
         user_id: str | None | _AutoSentinel = AUTO,
     ) -> None:
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.update_status")
+        stmt = update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(ThreadMetaRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            if not await self._check_ownership(session, thread_id, resolved_user_id):
-                return
-            await session.execute(update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id).values(status=status, updated_at=datetime.now(UTC)))
+            await apply_rls_context(session, resolved_user_id)
+            await session.execute(stmt.values(status=status, updated_at=datetime.now(UTC)))
             await session.commit()
 
     async def update_metadata(
@@ -200,6 +205,7 @@ class ThreadMetaRepository(ThreadMetaStore):
         """
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.update_metadata")
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             row = await session.get(ThreadMetaRow, thread_id)
             if row is None:
                 return
@@ -220,10 +226,16 @@ class ThreadMetaRepository(ThreadMetaStore):
     ) -> None:
         """Move a thread metadata row to ``owner_user_id``."""
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.update_owner")
+        stmt = update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(ThreadMetaRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            if not await self._check_ownership(session, thread_id, resolved_user_id):
-                return
-            await session.execute(update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id).values(user_id=owner_user_id, updated_at=datetime.now(UTC)))
+            # Reassignment writes a user_id that may differ from
+            # resolved_user_id; RLS's implicit WITH CHECK (mirrors USING)
+            # would reject that under a scoped context, so this only works
+            # bypassed. Both real callers already pass user_id=None.
+            await apply_rls_context(session, resolved_user_id)
+            await session.execute(stmt.values(user_id=owner_user_id, updated_at=datetime.now(UTC)))
             await session.commit()
 
     async def delete(
@@ -233,11 +245,10 @@ class ThreadMetaRepository(ThreadMetaStore):
         user_id: str | None | _AutoSentinel = AUTO,
     ) -> None:
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.delete")
+        stmt = delete(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id)
+        if resolved_user_id is not None:
+            stmt = stmt.where(ThreadMetaRow.user_id == resolved_user_id)
         async with self._sf() as session:
-            row = await session.get(ThreadMetaRow, thread_id)
-            if row is None:
-                return
-            if resolved_user_id is not None and row.user_id != resolved_user_id:
-                return
-            await session.delete(row)
+            await apply_rls_context(session, resolved_user_id)
+            await session.execute(stmt)
             await session.commit()

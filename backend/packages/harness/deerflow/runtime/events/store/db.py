@@ -15,6 +15,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from deerflow.persistence.models.run_event import RunEventRow
+from deerflow.persistence.rls import apply_rls_context
 from deerflow.runtime.events.store.base import RunEventStore
 from deerflow.runtime.user_context import AUTO, _AutoSentinel, get_current_user, resolve_user_id
 from deerflow.utils.time import coerce_iso
@@ -125,6 +126,7 @@ class DbRunEventStore(RunEventStore):
         user_id = self._user_id_from_context()
         async with self._sf() as session:
             async with session.begin():
+                await apply_rls_context(session, user_id)
                 max_seq = await self._max_seq_for_thread(session, thread_id)
                 seq = (max_seq or 0) + 1
                 row = RunEventRow(
@@ -150,6 +152,7 @@ class DbRunEventStore(RunEventStore):
         user_id = self._user_id_from_context()
         async with self._sf() as session:
             async with session.begin():
+                await apply_rls_context(session, user_id)
                 # All events belong to the same thread (validated above).
                 thread_id = events[0]["thread_id"]
                 max_seq = await self._max_seq_for_thread(session, thread_id)
@@ -199,12 +202,14 @@ class DbRunEventStore(RunEventStore):
             # Forward pagination: first `limit` records after cursor
             stmt = stmt.order_by(RunEventRow.seq.asc()).limit(limit)
             async with self._sf() as session:
+                await apply_rls_context(session, resolved_user_id)
                 result = await session.execute(stmt)
                 return [self._row_to_dict(r) for r in result.scalars()]
         else:
             # before_seq or default (latest): take last `limit` records, return ascending
             stmt = stmt.order_by(RunEventRow.seq.desc()).limit(limit)
             async with self._sf() as session:
+                await apply_rls_context(session, resolved_user_id)
                 result = await session.execute(stmt)
                 rows = list(result.scalars())
                 return [self._row_to_dict(r) for r in reversed(rows)]
@@ -226,6 +231,7 @@ class DbRunEventStore(RunEventStore):
             stmt = stmt.where(RunEventRow.event_type.in_(event_types))
         stmt = stmt.order_by(RunEventRow.seq.asc()).limit(limit)
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             result = await session.execute(stmt)
             return [self._row_to_dict(r) for r in result.scalars()]
 
@@ -255,11 +261,13 @@ class DbRunEventStore(RunEventStore):
         if after_seq is not None:
             stmt = stmt.order_by(RunEventRow.seq.asc()).limit(limit)
             async with self._sf() as session:
+                await apply_rls_context(session, resolved_user_id)
                 result = await session.execute(stmt)
                 return [self._row_to_dict(r) for r in result.scalars()]
         else:
             stmt = stmt.order_by(RunEventRow.seq.desc()).limit(limit)
             async with self._sf() as session:
+                await apply_rls_context(session, resolved_user_id)
                 result = await session.execute(stmt)
                 rows = list(result.scalars())
                 return [self._row_to_dict(r) for r in reversed(rows)]
@@ -275,6 +283,7 @@ class DbRunEventStore(RunEventStore):
         if resolved_user_id is not None:
             stmt = stmt.where(RunEventRow.user_id == resolved_user_id)
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             return await session.scalar(stmt) or 0
 
     async def delete_by_thread(
@@ -285,6 +294,7 @@ class DbRunEventStore(RunEventStore):
     ):
         resolved_user_id = resolve_user_id(user_id, method_name="DbRunEventStore.delete_by_thread")
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             count_conditions = [RunEventRow.thread_id == thread_id]
             if resolved_user_id is not None:
                 count_conditions.append(RunEventRow.user_id == resolved_user_id)
@@ -304,6 +314,7 @@ class DbRunEventStore(RunEventStore):
     ):
         resolved_user_id = resolve_user_id(user_id, method_name="DbRunEventStore.delete_by_run")
         async with self._sf() as session:
+            await apply_rls_context(session, resolved_user_id)
             count_conditions = [RunEventRow.thread_id == thread_id, RunEventRow.run_id == run_id]
             if resolved_user_id is not None:
                 count_conditions.append(RunEventRow.user_id == resolved_user_id)

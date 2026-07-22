@@ -21,6 +21,7 @@ from deerflow.persistence.channel_connections.model import (
     ChannelCredentialRow,
     ChannelOAuthStateRow,
 )
+from deerflow.persistence.rls import apply_rls_context
 from deerflow.utils.time import coerce_iso
 
 logger = logging.getLogger(__name__)
@@ -161,6 +162,7 @@ class ChannelConnectionRepository:
         )
 
         async with self.session_factory() as session:
+            await apply_rls_context(session, owner_user_id)
             last_error: IntegrityError | None = None
             for _ in range(_UPSERT_MAX_ATTEMPTS):
                 try:
@@ -193,13 +195,16 @@ class ChannelConnectionRepository:
 
     async def list_connections(self, owner_user_id: str) -> list[dict[str, Any]]:
         async with self.session_factory() as session:
+            await apply_rls_context(session, owner_user_id)
             result = await session.execute(select(ChannelConnectionRow).where(ChannelConnectionRow.owner_user_id == owner_user_id).order_by(ChannelConnectionRow.updated_at.desc(), ChannelConnectionRow.id.desc()))
             return [self._connection_to_dict(row) for row in result.scalars()]
 
     async def disconnect_connection(self, *, connection_id: str, owner_user_id: str) -> bool:
+        stmt = select(ChannelConnectionRow).where(ChannelConnectionRow.id == connection_id, ChannelConnectionRow.owner_user_id == owner_user_id)
         async with self.session_factory() as session:
-            row = await session.get(ChannelConnectionRow, connection_id)
-            if row is None or row.owner_user_id != owner_user_id:
+            await apply_rls_context(session, owner_user_id)
+            row = (await session.execute(stmt)).scalar_one_or_none()
+            if row is None:
                 return False
 
             row.status = "revoked"
@@ -210,8 +215,9 @@ class ChannelConnectionRepository:
             return True
 
     async def disconnect_provider_connections(self, *, provider: str) -> int:
-        """Revoke all active user connections for an instance-wide provider removal."""
+        """Revoke all active user connections for an instance-wide provider removal -- not user-scoped."""
         async with self.session_factory() as session:
+            await apply_rls_context(session, None)
             result = await session.execute(
                 select(ChannelConnectionRow.id).where(
                     ChannelConnectionRow.provider == provider,
@@ -241,6 +247,11 @@ class ChannelConnectionRepository:
         if self._cipher is None:
             raise RuntimeError("channel connection encryption key is required")
         async with self.session_factory() as session:
+            # No owner_user_id parameter here -- caller only has connection_id
+            # (e.g. OAuth callback). Policy for channel_credentials joins to
+            # channel_connections.owner_user_id, which app-level code already
+            # validated when it resolved connection_id.
+            await apply_rls_context(session, None)
             row = await session.get(ChannelCredentialRow, connection_id)
             if row is None:
                 row = ChannelCredentialRow(connection_id=connection_id)
@@ -258,6 +269,7 @@ class ChannelConnectionRepository:
         if self._cipher is None:
             return None
         async with self.session_factory() as session:
+            await apply_rls_context(session, None)  # no owner_user_id param -- see store_credentials
             row = await session.get(ChannelCredentialRow, connection_id)
             if row is None:
                 return None
@@ -308,6 +320,7 @@ class ChannelConnectionRepository:
             expires_at=expires_at,
         )
         async with self.session_factory() as session:
+            await apply_rls_context(session, owner_user_id)
             session.add(row)
             await session.commit()
 
@@ -339,6 +352,7 @@ class ChannelConnectionRepository:
         """
         current_time = now or datetime.now(UTC)
         async with self.session_factory() as session:
+            await apply_rls_context(session, owner_user_id)
             await self._serialize_oauth_owner_scope(session, owner_user_id, provider)
             # Prune only this owner/provider's expired codes (the ones that affect
             # this cap), not every user's — avoids a global DELETE on each connect
@@ -404,8 +418,10 @@ class ChannelConnectionRepository:
         return int.from_bytes(digest[:8], "big") & 0x7FFFFFFFFFFFFFFF
 
     async def delete_expired_oauth_states(self, *, now: datetime | None = None) -> int:
+        """Global sweep across all owners -- not user-scoped."""
         current_time = now or datetime.now(UTC)
         async with self.session_factory() as session:
+            await apply_rls_context(session, None)
             result = await session.execute(delete(ChannelOAuthStateRow).where(ChannelOAuthStateRow.expires_at < current_time))
             await session.commit()
             return int(result.rowcount or 0)
@@ -432,6 +448,7 @@ class ChannelConnectionRepository:
             )
 
         async with self.session_factory() as session:
+            await apply_rls_context(session, owner_user_id)
             result = await session.execute(select(func.count()).select_from(ChannelOAuthStateRow).where(*conditions))
             return int(result.scalar_one())
 
@@ -445,6 +462,8 @@ class ChannelConnectionRepository:
         current_time = now or datetime.now(UTC)
         state_hash = self.hash_state(state)
         async with self.session_factory() as session:
+            # Owner not known until after the state_hash lookup below.
+            await apply_rls_context(session, None)
             await session.execute(delete(ChannelOAuthStateRow).where(ChannelOAuthStateRow.expires_at < current_time))
             row = await session.get(ChannelOAuthStateRow, state_hash)
             if row is None or row.provider != provider or row.consumed_at is not None:
@@ -485,6 +504,8 @@ class ChannelConnectionRepository:
         workspace_id: str | None = None,
     ) -> dict[str, Any] | None:
         async with self.session_factory() as session:
+            # Webhook-driven cross-user lookup -- caller identity isn't known yet.
+            await apply_rls_context(session, None)
             result = await session.execute(
                 select(ChannelConnectionRow)
                 .where(
@@ -511,6 +532,7 @@ class ChannelConnectionRepository:
     ) -> None:
         topic_id = external_topic_id or ""
         async with self.session_factory() as session:
+            await apply_rls_context(session, owner_user_id)
             stmt = select(ChannelConversationRow).where(
                 ChannelConversationRow.connection_id == connection_id,
                 ChannelConversationRow.external_conversation_id == external_conversation_id,
@@ -541,6 +563,8 @@ class ChannelConnectionRepository:
         external_topic_id: str | None = None,
     ) -> str | None:
         async with self.session_factory() as session:
+            # Webhook-driven lookup -- caller identity isn't known yet.
+            await apply_rls_context(session, None)
             stmt = select(ChannelConversationRow.thread_id).where(
                 ChannelConversationRow.connection_id == connection_id,
                 ChannelConversationRow.external_conversation_id == external_conversation_id,

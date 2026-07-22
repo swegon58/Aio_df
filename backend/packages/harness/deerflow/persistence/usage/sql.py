@@ -26,6 +26,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from deerflow.persistence.rls import apply_rls_context
 from deerflow.persistence.run.model import RunRow
 from deerflow.persistence.usage.model import CreditEventRow, UserCreditRow
 from deerflow.runtime.usage.conversion import accrued_tokens
@@ -40,6 +41,7 @@ class CreditRepository:
     async def read(self, user_id: str) -> tuple[int, datetime] | None:
         """Return ``(balance_tokens, last_regen_at)`` or ``None`` if no row."""
         async with self._sf() as session:
+            await apply_rls_context(session, user_id)
             row = await session.get(UserCreditRow, user_id)
             if row is None:
                 return None
@@ -53,6 +55,7 @@ class CreditRepository:
         """
         now = now or datetime.now(UTC)
         async with self._sf() as session:
+            await apply_rls_context(session, user_id)
             row = await session.get(UserCreditRow, user_id)
             if row is not None:
                 return row.balance_tokens, _as_utc(row.last_regen_at)
@@ -94,6 +97,7 @@ class CreditRepository:
         """
         now = now or datetime.now(UTC)
         async with self._sf() as session:
+            await apply_rls_context(session, user_id)
             # Ledger-insert-first: a duplicate run_id trips the unique index and
             # rolls the whole transaction back, so the charge cannot double-apply.
             ledger = CreditEventRow(user_id=user_id, delta_tokens=-int(charge_tokens), reason=reason, run_id=run_id, balance_after=0, created_at=now)
@@ -133,6 +137,7 @@ class CreditRepository:
         """
         stmt = select(func.count(), func.min(RunRow.created_at)).where(RunRow.user_id == user_id, RunRow.created_at >= window_start)
         async with self._sf() as session:
+            await apply_rls_context(session, user_id)
             count, earliest = (await session.execute(stmt)).one()
         return int(count or 0), _as_utc(earliest) if isinstance(earliest, datetime) else None
 

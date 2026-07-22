@@ -47,7 +47,7 @@ from deerflow.persistence.migrations._helpers import _normalize_default
 asyncio_test = pytest.mark.asyncio
 
 
-HEAD = "0003_usage_credits"
+HEAD = "0004_rls_policies"
 BASELINE = "0001_baseline"
 
 
