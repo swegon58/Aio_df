@@ -45,16 +45,27 @@ upstream `bytedance/deer-flow`, do not push there).
 
 ## Next steps
 
-1. **[owner, pending]** Create a new dedicated Supabase project for Aio_df
-   (no CLI token available in this environment — do it via Supabase
-   dashboard, or give Claude a personal access token to automate project
-   creation via the Supabase Management API). Free tier is fine for
-   private/known-user scale. **Use the session-mode/direct connection
-   (port 5432), not the transaction pooler (6543)** — see research below,
-   the pooler breaks asyncpg prepared statements and unsafely scopes
-   `SET LOCAL`.
-2. **[owner, pending]** Register a Google OAuth client for OIDC login,
-   hand back client id/secret.
+1. **[in progress]** Supabase project created (`project_ref=ljxoskfglzcwqkmteofj`),
+   connected via Supabase's own dashboard "Connect via MCP" flow —
+   `.mcp.json` added (`claude mcp add --scope project --transport http
+   supabase ...`). **Still pending:** owner needs to run `claude /mcp` in a
+   real terminal to authenticate the MCP server (interactive OAuth, can't
+   be automated), then retrieve the port-5432 direct/session-mode
+   connection string (dashboard, or via the MCP once authenticated) and
+   hand it back so `DATABASE_URL` can be wired. **Use the session-mode/
+   direct connection (port 5432), not the transaction pooler (6543)** —
+   see research below, the pooler breaks asyncpg prepared statements and
+   unsafely scopes `SET LOCAL`.
+2. **[done]** Google OAuth client registered by owner in Google Cloud
+   Console; client id/secret handed back and wired 2026-07-22 —
+   `GOOGLE_OAUTH_CLIENT_SECRET` in `.env` (gitignored), `auth.oidc.providers.google`
+   block in `config.yaml` (gitignored), `redirect_uri:
+   http://localhost:8001/api/v1/auth/callback/google`. Verified by loading
+   the real config through `get_app_config()` — parses clean, `$GOOGLE_OAUTH_CLIENT_SECRET`
+   resolves correctly. **Caveat:** `database.backend` is still `sqlite`
+   (step 1 above not finished), so the Google login button will create/auth
+   a user against SQLite, not the RLS-hardened Postgres project yet —
+   multi-tenant isolation isn't live until step 1 + step 4 land.
 3. **[done]** Research fork: Postgres RLS + multi-tenant hardening best
    practices for this exact stack — see checklist below.
 4. Wire config: `database.backend: postgres`, `DATABASE_URL` from step 1
