@@ -1,0 +1,19 @@
+[Unit]
+Description=Aio Discord Bot (claude --channels plugin:discord, Aio_df)
+After=graphical-session.target network-online.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+Environment=DISCORD_SESSION=1
+Environment=DISCORD_STATE_DIR=/home/swegon/.claude/channels/aio-discord
+Environment=PATH=/home/swegon/.bun/bin:/home/swegon/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+WorkingDirectory=/home/swegon/AI_Agent/Aio_df
+ExecStart=bash "/home/swegon/AI_Agent/Aio_df/aio-bot/service/aio-discord-wrapper.sh"
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

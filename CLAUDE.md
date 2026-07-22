@@ -13,6 +13,10 @@ guide rather than expecting full detail here:
   config system, test layout.
 - **[frontend/CLAUDE.md](frontend/CLAUDE.md)** — frontend depth: Next.js App Router layout,
   thread/streaming data flow, code style, commands.
+- **[aio-bot/CLAUDE.md](aio-bot/CLAUDE.md)** — how *the assistant itself* operates here: the
+  Discord persona, the local Discord bot plugin, its systemd service, and portable
+  cross-machine memory. Not part of the Aio product — this is Claude Code's own operating
+  config, kept in-repo so it survives a clone to a new machine.
 
 ## What is Aio
 
@@ -21,6 +25,18 @@ backend runs a "super agent" with sandboxed execution, persistent memory, subage
 delegation, and extensible tools (built-in, MCP, community), all per-thread isolated. The
 frontend is a Next.js chat UI. External IM platforms (Feishu, Slack, Telegram, Discord,
 DingTalk) bridge into the same agent through the Gateway.
+
+## Working Context
+
+This repo (`/home/swegon/AI_Agent/Aio_df`) is the default and only place work
+happens when the owner says "continue aio" / "tiếp tục aio" / "aio df" — do
+not cross-reference or re-explain `Aio_project` or other repos unless the
+owner brings them up first.
+
+Git remotes: `origin` = `github.com/bytedance/deer-flow` (public upstream,
+**never push here**). `swegon` = `github.com/swegon58/Aio_df` (owner's own
+fork — **this is the push target**). When asked to push, `git push swegon
+main` directly, no re-litigating which remote.
 
 ## Service Topology
 
@@ -55,6 +71,7 @@ deer-flow/
 ├── contracts/                      # Cross-component JSON contracts (e.g. subagent status)
 ├── scripts/                        # Root orchestration scripts invoked by the Makefile (check, configure, doctor, serve, docker, deploy, setup_wizard)
 ├── tests/                          # Root-level tests (currently tests/skills/ — public skill tests)
+├── aio-bot/                         # Claude Code's own Discord persona/bot/memory — see aio-bot/CLAUDE.md
 └── docs/                           # Cross-cutting docs, plans, and design notes
 ```
 
@@ -105,6 +122,7 @@ Rule of thumb: **root `make` = the full application**; **`backend/Makefile` and 
 
 - Backend work → **[backend/CLAUDE.md](backend/CLAUDE.md)**
 - Frontend work → **[frontend/CLAUDE.md](frontend/CLAUDE.md)**
+- Assistant's Discord persona/bot/memory → **[aio-bot/CLAUDE.md](aio-bot/CLAUDE.md)**
 - Setup & install → **[Install.md](Install.md)**, **[CONTRIBUTING.md](CONTRIBUTING.md)**
 - Project overview & usage → **[README.md](README.md)**
 - Security policy → **[SECURITY.md](SECURITY.md)**

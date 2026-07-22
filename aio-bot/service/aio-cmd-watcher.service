@@ -1,0 +1,14 @@
+[Unit]
+Description=Discord command watcher (!compact / !clear for Aio)
+After=network-online.target aio-discord.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -u /home/swegon/AI_Agent/Aio_df/aio-bot/service/aio-discord-command-watcher.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

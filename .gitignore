@@ -63,3 +63,6 @@ config.yaml.bak
 
 # graphify knowledge-graph output (generated, regenerable via /graphify)
 graphify-out/
+
+# aio-bot: discord plugin deps (regenerate via `bun install`)
+aio-bot/discord-plugin/discord-plugin/node_modules/

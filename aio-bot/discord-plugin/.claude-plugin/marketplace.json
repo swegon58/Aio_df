@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "aio-marketplace",
+  "description": "Isolated local marketplace for the Aio Discord bot — private copy of the discord channel plugin, fully separate from other bots.",
+  "owner": {
+    "name": "local"
+  },
+  "plugins": [
+    {
+      "name": "discord-aio",
+      "description": "Isolated Discord channel plugin for the Aio bot",
+      "source": "./discord-plugin",
+      "category": "communication"
+    }
+  ]
+}
