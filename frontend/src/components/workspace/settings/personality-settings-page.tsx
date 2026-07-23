@@ -17,6 +17,8 @@ import {
 import type { PersonaTraits } from "@/core/persona/types";
 import { cn } from "@/lib/utils";
 
+import { SettingsSection } from "./settings-section";
+
 const SLIDER_FIELDS: Array<{
   key: keyof Pick<
     PersonaTraits,
@@ -85,88 +87,87 @@ export function PersonalitySettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h3 className="text-lg font-semibold">
-          {t.settings.personality.title}
-        </h3>
-        <p className="text-muted-foreground text-sm">
-          {t.settings.personality.description}
-        </p>
-      </div>
+    <SettingsSection
+      title={t.settings.personality.title}
+      description={t.settings.personality.description}
+    >
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {presets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => handlePresetSelect(preset.id)}
+              className={cn(
+                "hover:bg-muted rounded-lg border p-4 text-left transition-colors",
+                persona.preset === preset.id && "border-primary bg-muted",
+              )}
+            >
+              <div className="font-medium">{preset.label}</div>
+              <div className="text-muted-foreground text-sm">
+                {preset.description}
+              </div>
+            </button>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {presets.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => handlePresetSelect(preset.id)}
-            className={cn(
-              "hover:bg-muted rounded-lg border p-4 text-left transition-colors",
-              persona.preset === preset.id && "border-primary bg-muted",
-            )}
-          >
-            <div className="font-medium">{preset.label}</div>
-            <div className="text-muted-foreground text-sm">
-              {preset.description}
+        <div className="space-y-6">
+          {SLIDER_FIELDS.map(({ key, labelKey }) => (
+            <div key={key} className="space-y-2">
+              <label
+                htmlFor={`persona-${key}`}
+                className="text-sm font-medium"
+              >
+                {t.settings.personality[labelKey]}
+              </label>
+              <Slider
+                id={`persona-${key}`}
+                aria-label={t.settings.personality[labelKey]}
+                min={0}
+                max={100}
+                step={5}
+                value={[persona[key]]}
+                onValueChange={(value) => handleSliderChange(key, value)}
+              />
             </div>
-          </button>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="space-y-6">
-        {SLIDER_FIELDS.map(({ key, labelKey }) => (
-          <div key={key} className="space-y-2">
-            <label htmlFor={`persona-${key}`} className="text-sm font-medium">
-              {t.settings.personality[labelKey]}
-            </label>
-            <Slider
-              id={`persona-${key}`}
-              aria-label={t.settings.personality[labelKey]}
-              min={0}
-              max={100}
-              step={5}
-              value={[persona[key]]}
-              onValueChange={(value) => handleSliderChange(key, value)}
-            />
-          </div>
-        ))}
-      </div>
+        <div className="space-y-2">
+          <label htmlFor="persona-nickname" className="text-sm font-medium">
+            {t.settings.personality.nicknameLabel}
+          </label>
+          <Input
+            id="persona-nickname"
+            value={nickname}
+            placeholder={t.settings.personality.nicknamePlaceholder}
+            onChange={(e) => setNickname(e.target.value)}
+            onBlur={handleSaveTextFields}
+          />
+        </div>
 
-      <div className="space-y-2">
-        <label htmlFor="persona-nickname" className="text-sm font-medium">
-          {t.settings.personality.nicknameLabel}
-        </label>
-        <Input
-          id="persona-nickname"
-          value={nickname}
-          placeholder={t.settings.personality.nicknamePlaceholder}
-          onChange={(e) => setNickname(e.target.value)}
-          onBlur={handleSaveTextFields}
-        />
-      </div>
+        <div className="space-y-2">
+          <label htmlFor="persona-notes" className="text-sm font-medium">
+            {t.settings.personality.notesLabel}
+          </label>
+          <Textarea
+            id="persona-notes"
+            value={notes}
+            placeholder={t.settings.personality.notesPlaceholder}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={handleSaveTextFields}
+            rows={4}
+          />
+        </div>
 
-      <div className="space-y-2">
-        <label htmlFor="persona-notes" className="text-sm font-medium">
-          {t.settings.personality.notesLabel}
-        </label>
-        <Textarea
-          id="persona-notes"
-          value={notes}
-          placeholder={t.settings.personality.notesPlaceholder}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={handleSaveTextFields}
-          rows={4}
-        />
+        <Button
+          variant="outline"
+          onClick={handleReset}
+          disabled={resetPersona.isPending}
+        >
+          {t.settings.personality.resetButton}
+        </Button>
       </div>
-
-      <Button
-        variant="outline"
-        onClick={handleReset}
-        disabled={resetPersona.isPending}
-      >
-        {t.settings.personality.resetButton}
-      </Button>
-    </div>
+    </SettingsSection>
   );
 }
