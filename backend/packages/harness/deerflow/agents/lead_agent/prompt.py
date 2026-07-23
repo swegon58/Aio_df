@@ -723,7 +723,17 @@ def get_skills_prompt_section(available_skills: set[str] | None = None, *, app_c
 
 
 def get_agent_soul(agent_name: str | None) -> str:
-    # Append SOUL.md (agent personality) if present
+    if agent_name is None:
+        # Default agent: per-user tunable persona, not a static SOUL.md.
+        from deerflow.agents.persona.prompt import render_persona_block
+        from deerflow.agents.persona.storage import get_persona
+        from deerflow.runtime.user_context import get_effective_user_id
+
+        persona = get_persona(get_effective_user_id())
+        block = render_persona_block(persona)
+        return f"<soul>\n{block}\n</soul>\n" if block else ""
+
+    # Custom agent: append its persisted SOUL.md (personality), if present.
     soul = load_agent_soul(agent_name)
     if soul:
         return f"<soul>\n{soul}\n</soul>\n" if soul else ""
