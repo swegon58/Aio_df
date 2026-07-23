@@ -36,7 +36,11 @@ export function PersonalityWizard() {
     // dismissible via escape/outside-click; it only closes once
     // handleFinish flips onboardingCompleted and the component unmounts.
     <Dialog open onOpenChange={() => undefined}>
-      <DialogContent aria-describedby={undefined} className="sm:max-w-lg">
+      <DialogContent
+        aria-describedby={undefined}
+        showCloseButton={false}
+        className="sm:max-w-lg"
+      >
         <DialogHeader>
           <DialogTitle>{t.settings.personality.wizardTitle}</DialogTitle>
         </DialogHeader>
