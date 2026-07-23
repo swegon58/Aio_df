@@ -1,7 +1,7 @@
 # DeerFlow TUI - Product and Engineering Spec
 
 **Date**: 2026-06-13
-**Status**: Draft, ready for RFC discussion
+**Status**: Shipped — `deerflow` TUI exists at `backend/packages/harness/deerflow/tui/`. See [DEVLOG](../../DEVLOG.md). Rationale below kept as reference for future TUI work (not compressed — this is design reasoning, not a task checklist).
 **Scope**: Hermes-like terminal UI for the DeerFlow 2.0 harness
 
 **Revision 2026-06-24**: Reworked runtime ownership and session persistence after RFC #3540 feedback. The TUI runs embedded but reuses the same session/persistence layer (`ThreadMetaStore`) so terminal sessions are visible in the Web UI without running the Gateway. See [Runtime and Session Persistence](#runtime-and-session-persistence).
