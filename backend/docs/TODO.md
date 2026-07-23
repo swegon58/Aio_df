@@ -16,7 +16,7 @@
 ## Planned Features
 
 - [ ] Pooling the sandbox resources to reduce the number of sandbox containers
-- [ ] Multi-tenant Postgres RLS rollout (Google OAuth login already live; see `AIO_DF_AUTH_INFRA_PLAN.md` — `SET_CONFIG` wiring still missing in `channel_connections`/`feedback`/`thread_meta`/`usage` stores, `database.backend` still `sqlite`)
+- [ ] Multi-tenant Postgres RLS rollout (Google OAuth login already live; see `AIO_DF_AUTH_INFRA_PLAN.md` — `SET_CONFIG` wiring is done in `channel_connections`/`feedback`/`thread_meta`/`usage`/`run` stores as of `35163c94`; only remaining step is flipping `database.backend` off `sqlite` to a real Postgres `DATABASE_URL`)
 - [ ] Implement rate limiting
 - [ ] Add metrics and monitoring
 - [ ] Support for more document formats in upload
