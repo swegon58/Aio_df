@@ -430,6 +430,12 @@ export interface Translations {
       saveFailed: string;
       resetDone: string;
       presetApplied: string;
+      wizardTitle: string;
+      wizardPresetPrompt: string;
+      wizardNext: string;
+      wizardNicknamePrompt: string;
+      wizardSettingsHint: string;
+      wizardFinish: string;
     };
     appearance: {
       themeTitle: string;

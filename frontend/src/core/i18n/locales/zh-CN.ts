@@ -499,6 +499,12 @@ export const zhCN: Translations = {
       saveFailed: "保存个性设置失败，请重试。",
       resetDone: "个性已恢复默认。",
       presetApplied: "已应用预设。",
+      wizardTitle: "设置一下 Aio 跟你说话的方式",
+      wizardPresetPrompt: "选一个起点——之后可以在设置里随时微调。",
+      wizardNext: "下一步",
+      wizardNicknamePrompt: "Aio 应该怎么称呼你？（可选）",
+      wizardSettingsHint: "之后随时可以在 设置 → 个性 里修改。",
+      wizardFinish: "完成",
     },
     appearance: {
       themeTitle: "主题",

@@ -519,6 +519,13 @@ export const enUS: Translations = {
       saveFailed: "Couldn't save your personality settings — try again.",
       resetDone: "Personality reset to default.",
       presetApplied: "Preset applied.",
+      wizardTitle: "Let's set up how Aio talks to you",
+      wizardPresetPrompt:
+        "Pick a starting point — you can fine-tune everything later in Settings.",
+      wizardNext: "Next",
+      wizardNicknamePrompt: "What should Aio call you? (optional)",
+      wizardSettingsHint: "You can change this anytime in Settings → Personality.",
+      wizardFinish: "Done",
     },
     appearance: {
       themeTitle: "Theme",

@@ -15,6 +15,7 @@ import { QueryClientProvider } from "@/components/query-client-provider";
 import { CommandPalette } from "@/components/workspace/command-palette";
 import { GatewayOfflineBanner } from "@/components/workspace/gateway-offline-banner";
 import { WorkspaceIconRail } from "@/components/workspace/icon-rail/workspace-icon-rail";
+import { PersonalityWizard } from "@/components/workspace/onboarding/personality-wizard";
 
 export function WorkspaceContent({
   children,
@@ -49,6 +50,7 @@ export function WorkspaceContent({
         </main>
       </div>
       <CommandPalette />
+      <PersonalityWizard />
       <Toaster position="top-center" />
     </QueryClientProvider>
   );
