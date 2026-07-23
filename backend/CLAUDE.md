@@ -56,7 +56,7 @@ deer-flow/
 │   ├── app/                   # Application layer (import: app.*)
 │   │   ├── gateway/           # FastAPI Gateway API
 │   │   │   ├── app.py         # FastAPI application
-│   │   │   └── routers/       # FastAPI route modules (models, mcp, memory, skills, uploads, threads, artifacts, agents, suggestions, channels)
+│   │   │   └── routers/       # FastAPI route modules (models, mcp, memory, skills, uploads, threads, artifacts, agents, suggestions, channels, persona)
 │   │   └── channels/          # IM platform integrations
 │   ├── tests/                 # Test suite
 │   └── docs/                  # Documentation
@@ -197,7 +197,7 @@ See [docs/architecture/configuration.md](docs/architecture/configuration.md) for
 
 ### Gateway API
 
-See [docs/architecture/gateway-api.md](docs/architecture/gateway-api.md) for: the `app/gateway/` router table (models, MCP, skills, uploads, threads, artifacts, suggestions, runs, feedback) and the `RunManager`/`RunStore` contract.
+See [docs/architecture/gateway-api.md](docs/architecture/gateway-api.md) for: the `app/gateway/` router table (models, MCP, skills, uploads, threads, artifacts, suggestions, runs, feedback, persona) and the `RunManager`/`RunStore` contract.
 
 ### Sandbox, Tools, MCP, Skills
 

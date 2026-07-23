@@ -60,8 +60,9 @@ export function PersonalitySettingsPage() {
   function handlePresetSelect(presetId: string) {
     const preset = presets.find((p) => p.id === presetId);
     if (!preset) return;
+    const { formality, playfulness, verbosity, emojiUsage } = preset.traits;
     updatePersona.mutate(
-      { ...preset.traits, preset: presetId },
+      { formality, playfulness, verbosity, emojiUsage, preset: presetId },
       {
         onSuccess: () => toast.success(t.settings.personality.presetApplied),
         onError: () => toast.error(t.settings.personality.saveFailed),
