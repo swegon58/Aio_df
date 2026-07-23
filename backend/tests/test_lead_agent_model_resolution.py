@@ -188,6 +188,65 @@ def test_resolve_model_name_uses_default_when_none(monkeypatch):
     assert resolved == "default-model"
 
 
+def test_make_lead_agent_uses_mode_model_override_when_no_explicit_model(monkeypatch):
+    app_config = _make_app_config(
+        [
+            _make_model("default-model", supports_thinking=False),
+            _make_model("pro-model", supports_thinking=True),
+        ]
+    )
+    app_config.mode_model_overrides = {"pro": "pro-model"}
+
+    import deerflow.tools as tools_module
+
+    monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    monkeypatch.setattr(tools_module, "get_available_tools", lambda **kwargs: [])
+    monkeypatch.setattr(lead_agent_module, "build_middlewares", lambda config, model_name, agent_name=None, **kwargs: [])
+
+    captured: dict[str, object] = {}
+
+    def _fake_create_chat_model(*, name, thinking_enabled, reasoning_effort=None, app_config=None, attach_tracing=True):
+        captured["name"] = name
+        return object()
+
+    monkeypatch.setattr(lead_agent_module, "create_chat_model", _fake_create_chat_model)
+    monkeypatch.setattr(lead_agent_module, "create_agent", lambda **kwargs: kwargs)
+
+    lead_agent_module.make_lead_agent({"context": {"mode": "pro"}})
+
+    assert captured["name"] == "pro-model"
+
+
+def test_make_lead_agent_explicit_model_name_wins_over_mode_override(monkeypatch):
+    app_config = _make_app_config(
+        [
+            _make_model("default-model", supports_thinking=False),
+            _make_model("pro-model", supports_thinking=True),
+            _make_model("picked-model", supports_thinking=False),
+        ]
+    )
+    app_config.mode_model_overrides = {"pro": "pro-model"}
+
+    import deerflow.tools as tools_module
+
+    monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    monkeypatch.setattr(tools_module, "get_available_tools", lambda **kwargs: [])
+    monkeypatch.setattr(lead_agent_module, "build_middlewares", lambda config, model_name, agent_name=None, **kwargs: [])
+
+    captured: dict[str, object] = {}
+
+    def _fake_create_chat_model(*, name, thinking_enabled, reasoning_effort=None, app_config=None, attach_tracing=True):
+        captured["name"] = name
+        return object()
+
+    monkeypatch.setattr(lead_agent_module, "create_chat_model", _fake_create_chat_model)
+    monkeypatch.setattr(lead_agent_module, "create_agent", lambda **kwargs: kwargs)
+
+    lead_agent_module.make_lead_agent({"context": {"mode": "pro", "model_name": "picked-model"}})
+
+    assert captured["name"] == "picked-model"
+
+
 def test_resolve_model_name_raises_when_no_models_configured(monkeypatch):
     app_config = _make_app_config([])
 

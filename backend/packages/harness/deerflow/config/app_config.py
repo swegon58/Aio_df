@@ -103,6 +103,10 @@ class AppConfig(BaseModel):
     token_budget: TokenBudgetConfig = Field(default_factory=TokenBudgetConfig, description="Token Budget tracking and limits configuration.")
     usage_limits: UsageLimitsConfig = Field(default_factory=UsageLimitsConfig, description="Per-user Energy credits and run rate limiting configuration.")
     models: list[ModelConfig] = Field(default_factory=list, description="Available models")
+    mode_model_overrides: dict[str, str] = Field(
+        default_factory=dict,
+        description="Chat-mode -> model name overrides (e.g. {'pro': 'glm-4.7'}). Applied only when the request has no explicit model_name/agent model.",
+    )
     sandbox: SandboxConfig = Field(
         description=format_field_description(
             "sandbox",

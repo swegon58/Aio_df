@@ -594,6 +594,12 @@ models:
   #   write_timeout: 60.0
   #   pool_timeout: 30.0
 
+# Optional: pin a specific model to a chat mode (frontend context.mode), independent
+# of the default model (models[0]) used everywhere else. Only applies when the
+# request has no explicit model_name and no custom-agent model override.
+# mode_model_overrides:
+#   pro: glm-4.7
+
 # ============================================================================
 # Tool Groups Configuration
 # ============================================================================

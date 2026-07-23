@@ -441,6 +441,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
     thinking_enabled = cfg.get("thinking_enabled", True)
     reasoning_effort = cfg.get("reasoning_effort", None)
     requested_model_name: str | None = cfg.get("model_name") or cfg.get("model")
+    mode = cfg.get("mode")
     is_plan_mode = cfg.get("is_plan_mode", False)
     subagent_enabled = cfg.get("subagent_enabled", False)
     max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
@@ -451,9 +452,12 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
     available_skills = _available_skill_names(agent_config, is_bootstrap)
     # Custom agent model from agent config (if any), or None to let _resolve_model_name pick the default
     agent_model_name = agent_config.model if agent_config and agent_config.model else None
+    # Chat-mode default (e.g. "pro" -> glm-4.7 via config.yaml mode_model_overrides), only when
+    # the request/agent didn't already pin a model explicitly.
+    mode_model_name = resolved_app_config.mode_model_overrides.get(mode) if mode else None
 
-    # Final model name resolution: request → agent config → global default, with fallback for unknown names
-    model_name = _resolve_model_name(requested_model_name or agent_model_name, app_config=resolved_app_config)
+    # Final model name resolution: request → agent config → mode default → global default, with fallback for unknown names
+    model_name = _resolve_model_name(requested_model_name or agent_model_name or mode_model_name, app_config=resolved_app_config)
 
     model_config = resolved_app_config.get_model_config(model_name)
 
