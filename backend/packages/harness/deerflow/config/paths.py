@@ -211,6 +211,10 @@ class Paths:
         """Per-user memory file: `{base_dir}/users/{user_id}/memory.json`."""
         return self.user_dir(user_id) / "memory.json"
 
+    def user_persona_file(self, user_id: str) -> Path:
+        """Path to a user's persona (tone/personality tuning) JSON file."""
+        return self.user_dir(user_id) / "persona.json"
+
     def user_agents_dir(self, user_id: str) -> Path:
         """Per-user root for that user's custom agents: `{base_dir}/users/{user_id}/agents/`."""
         return self.user_dir(user_id) / "agents"
