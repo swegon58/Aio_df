@@ -315,6 +315,7 @@ export interface Translations {
       appearance: string;
       channels: string;
       memory: string;
+      personality: string;
       tools: string;
       skills: string;
       notification: string;
@@ -412,6 +413,23 @@ export interface Translations {
           view: string;
         };
       };
+    };
+    personality: {
+      title: string;
+      description: string;
+      formality: string;
+      playfulness: string;
+      verbosity: string;
+      emojiUsage: string;
+      nicknameLabel: string;
+      nicknamePlaceholder: string;
+      notesLabel: string;
+      notesPlaceholder: string;
+      resetButton: string;
+      saved: string;
+      saveFailed: string;
+      resetDone: string;
+      presetApplied: string;
     };
     appearance: {
       themeTitle: string;

@@ -5,6 +5,7 @@ import {
   CableIcon,
   BrainIcon,
   CreditCardIcon,
+  DramaIcon,
   PaletteIcon,
   SparklesIcon,
   UserIcon,
@@ -25,6 +26,7 @@ import { AppearanceSettingsPage } from "@/components/workspace/settings/appearan
 import { ChannelsSettingsPage } from "@/components/workspace/settings/channels-settings-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
+import { PersonalitySettingsPage } from "@/components/workspace/settings/personality-settings-page";
 import { PlanSettingsPage } from "@/components/workspace/settings/plan-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
@@ -36,6 +38,7 @@ type SettingsSection =
   | "appearance"
   | "channels"
   | "memory"
+  | "personality"
   | "tools"
   | "skills"
   | "notification"
@@ -87,6 +90,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
         label: t.settings.sections.memory,
         icon: BrainIcon,
       },
+      {
+        id: "personality",
+        label: t.settings.sections.personality,
+        icon: DramaIcon,
+      },
       { id: "tools", label: t.settings.sections.tools, icon: WrenchIcon },
       { id: "skills", label: t.settings.sections.skills, icon: SparklesIcon },
       { id: "plan", label: t.settings.sections.plan, icon: CreditCardIcon },
@@ -96,6 +104,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.appearance,
       t.settings.sections.channels,
       t.settings.sections.memory,
+      t.settings.sections.personality,
       t.settings.sections.tools,
       t.settings.sections.skills,
       t.settings.sections.notification,
@@ -147,6 +156,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               {activeSection === "account" && <AccountSettingsPage />}
               {activeSection === "appearance" && <AppearanceSettingsPage />}
               {activeSection === "memory" && <MemorySettingsPage />}
+              {activeSection === "personality" && <PersonalitySettingsPage />}
               {activeSection === "tools" && <ToolSettingsPage />}
               {activeSection === "skills" && (
                 <SkillSettingsPage
