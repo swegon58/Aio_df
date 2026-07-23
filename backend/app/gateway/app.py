@@ -22,6 +22,7 @@ from app.gateway.routers import (
     mcp,
     memory,
     models,
+    persona,
     runs,
     skills,
     suggestions,
@@ -372,6 +373,9 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
 
     # Memory API is mounted at /api/memory
     app.include_router(memory.router)
+
+    # Persona API is mounted at /api/persona
+    app.include_router(persona.router)
 
     # Skills API is mounted at /api/skills
     app.include_router(skills.router)
